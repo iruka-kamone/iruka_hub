@@ -439,7 +439,7 @@ RunService.Heartbeat:Connect(function()
 		end
 	end
 
-	-- 移動処理
+	-- 移動処理 修正版
 	if moving and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("Humanoid") and selectedTarget.Character.Humanoid.Health > 0 and player.Character then
 		local root = player.Character:FindFirstChild("HumanoidRootPart")
 		local targetRoot = selectedTarget.Character:FindFirstChild("HumanoidRootPart")
@@ -448,11 +448,17 @@ RunService.Heartbeat:Connect(function()
 				currentTween:Cancel()
 				currentTween = nil
 			end
-　　　　　　　followBlock.Position = targetRoot.Position
+
+			-- followBlockの位置を自キャラの現在位置にセット
+			followBlock.Position = root.Position
+
 			local dist = (targetRoot.Position - followBlock.Position).Magnitude
 			local time = dist / MOVE_SPEED
+
 			currentTween = TweenService:Create(followBlock, TweenInfo.new(time, Enum.EasingStyle.Linear), {Position = targetRoot.Position})
 			currentTween:Play()
+
+			-- followBlockの位置に自キャラを追従させる（毎フレーム）
 			root.CFrame = followBlock.CFrame
 		end
 	elseif not moving and currentTween then
@@ -471,3 +477,4 @@ RunService.Heartbeat:Connect(function()
 		end
 	end
 end)
+
