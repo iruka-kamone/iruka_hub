@@ -448,6 +448,7 @@ RunService.Heartbeat:Connect(function()
 				currentTween:Cancel()
 				currentTween = nil
 			end
+　　　　　　　followBlock.Position = targetRoot.Position
 			local dist = (targetRoot.Position - followBlock.Position).Magnitude
 			local time = dist / MOVE_SPEED
 			currentTween = TweenService:Create(followBlock, TweenInfo.new(time, Enum.EasingStyle.Linear), {Position = targetRoot.Position})
