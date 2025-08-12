@@ -6,13 +6,10 @@ local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local MOVE_SPEED = 300
 
--- 追尾用透明パーツ
-local followBlock = Instance.new("Part", workspace)
-followBlock.Name = "FollowBlock"
-followBlock.Anchored = true
-followBlock.CanCollide = false
-followBlock.Transparency = 1
-followBlock.Size = Vector3.new(2,2,2)
+-- 透明プラットフォーム
+local followPlatform = nil
+local tween = nil
+local connection = nil
 
 -- GUI作成
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
@@ -21,7 +18,7 @@ screenGui.Name = "FollowGui"
 local mainFrame = Instance.new("Frame", screenGui)
 mainFrame.Size = UDim2.new(0, 360, 0, 270)
 mainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 mainFrame.BackgroundTransparency = 0.4
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
@@ -29,15 +26,15 @@ mainFrame.Active = true
 mainFrame.Draggable = true
 
 local titleBar = Instance.new("Frame", mainFrame)
-titleBar.Size = UDim2.new(1,0,0,30)
-titleBar.BackgroundColor3 = Color3.fromRGB(25,25,25)
+titleBar.Size = UDim2.new(1, 0, 0, 30)
+titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 
 local titleLabel = Instance.new("TextLabel", titleBar)
 titleLabel.Size = UDim2.new(1, -80, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "Iruka Hub"
-titleLabel.TextColor3 = Color3.new(1,1,1)
+titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 18
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -45,8 +42,8 @@ titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 local minButton = Instance.new("TextButton", titleBar)
 minButton.Size = UDim2.new(0, 35, 0, 25)
 minButton.Position = UDim2.new(1, -75, 0, 2)
-minButton.BackgroundColor3 = Color3.fromRGB(60,60,60)
-minButton.TextColor3 = Color3.new(1,1,1)
+minButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+minButton.TextColor3 = Color3.new(1, 1, 1)
 minButton.Text = "_"
 minButton.Font = Enum.Font.GothamBold
 minButton.TextSize = 22
@@ -54,8 +51,8 @@ minButton.TextSize = 22
 local closeButton = Instance.new("TextButton", titleBar)
 closeButton.Size = UDim2.new(0, 35, 0, 25)
 closeButton.Position = UDim2.new(1, -35, 0, 2)
-closeButton.BackgroundColor3 = Color3.fromRGB(180,50,50)
-closeButton.TextColor3 = Color3.new(1,1,1)
+closeButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+closeButton.TextColor3 = Color3.new(1, 1, 1)
 closeButton.Text = "X"
 closeButton.Font = Enum.Font.GothamBold
 closeButton.TextSize = 22
@@ -65,12 +62,12 @@ contentFrame.Size = UDim2.new(1, 0, 1, -30)
 contentFrame.Position = UDim2.new(0, 0, 0, 30)
 contentFrame.BackgroundTransparency = 1
 
--- Dropdown to select player
+-- プレイヤー選択ドロップダウン
 local dropdown = Instance.new("TextButton", contentFrame)
 dropdown.Size = UDim2.new(0, 160, 0, 30)
 dropdown.Position = UDim2.new(0, 10, 0, 10)
-dropdown.BackgroundColor3 = Color3.fromRGB(40,40,40)
-dropdown.TextColor3 = Color3.new(1,1,1)
+dropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+dropdown.TextColor3 = Color3.new(1, 1, 1)
 dropdown.Text = "Select Player"
 dropdown.Font = Enum.Font.Gotham
 dropdown.TextSize = 14
@@ -78,7 +75,7 @@ dropdown.TextSize = 14
 local dropdownFrame = Instance.new("ScrollingFrame", contentFrame)
 dropdownFrame.Size = UDim2.new(0, 160, 0, 120)
 dropdownFrame.Position = UDim2.new(0, 10, 0, 40)
-dropdownFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+dropdownFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 dropdownFrame.Visible = false
 dropdownFrame.ClipsDescendants = true
 dropdownFrame.BorderSizePixel = 0
@@ -86,9 +83,9 @@ dropdownFrame.ScrollBarThickness = 6
 
 local uiListLayout = Instance.new("UIListLayout", dropdownFrame)
 uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-uiListLayout.Padding = UDim.new(0,4)
+uiListLayout.Padding = UDim.new(0, 4)
 
--- Buttons container on right
+-- ボタンエリア
 local buttonFrame = Instance.new("Frame", contentFrame)
 buttonFrame.Size = UDim2.new(0, 160, 0, 180)
 buttonFrame.Position = UDim2.new(0, 190, 0, 10)
@@ -96,14 +93,14 @@ buttonFrame.BackgroundTransparency = 1
 
 local buttonLayout = Instance.new("UIListLayout", buttonFrame)
 buttonLayout.SortOrder = Enum.SortOrder.LayoutOrder
-buttonLayout.Padding = UDim.new(0,4)
+buttonLayout.Padding = UDim.new(0, 4)
 
--- Button creator
+-- ボタン作成関数
 local function makeButton(text, color)
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, 0, 0, 30)
 	btn.BackgroundColor3 = color
-	btn.TextColor3 = Color3.new(1,1,1)
+	btn.TextColor3 = Color3.new(1, 1, 1)
 	btn.Text = text
 	btn.Font = Enum.Font.GothamSemibold
 	btn.TextSize = 16
@@ -111,14 +108,14 @@ local function makeButton(text, color)
 	return btn
 end
 
-local refreshButton = makeButton("Refresh", Color3.fromRGB(70,70,70))
-local moveButton = makeButton("Move: OFF", Color3.fromRGB(70,70,70))
-local camButton = makeButton("Cam Lock: OFF", Color3.fromRGB(90,90,90))
-local randomButton = makeButton("Random: OFF", Color3.fromRGB(110,110,110))
+local refreshButton = makeButton("Refresh", Color3.fromRGB(70, 70, 70))
+local moveButton = makeButton("Move: OFF", Color3.fromRGB(70, 70, 70))
+local camButton = makeButton("Cam Lock: OFF", Color3.fromRGB(90, 90, 90))
+local randomButton = makeButton("Random: OFF", Color3.fromRGB(110, 110, 110))
 local sameTeamButton = makeButton("Same Team: OFF", Color3.fromRGB(100, 100, 150))
 local randomTypeButton = makeButton("Random Type: Close", Color3.fromRGB(100, 150, 100))
 
--- State variables
+-- 状態変数
 local selectedTarget = nil
 local targetBillboard = nil
 local targetBoxBillboard = nil
@@ -128,19 +125,17 @@ local camLock = false
 local randomMode = false
 local sameTeamEnabled = false
 local randomTypeClose = true
-local currentTween = nil
 local minimized = false
 
--- Update player list dropdown
+-- プレイヤーリスト更新関数
 local function updatePlayerList()
 	dropdownFrame:ClearAllChildren()
 	uiListLayout = Instance.new("UIListLayout", dropdownFrame)
 	uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	uiListLayout.Padding = UDim.new(0,4)
+	uiListLayout.Padding = UDim.new(0, 4)
 
 	local count = 0
 
-	-- Add 'None' option
 	local noneBtn = Instance.new("TextButton", dropdownFrame)
 	noneBtn.Size = UDim2.new(1, 0, 0, 30)
 	noneBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
@@ -165,7 +160,6 @@ local function updatePlayerList()
 			btn.Text = plr.Name
 			btn.Font = Enum.Font.GothamSemibold
 			btn.TextSize = 16
-
 			btn.MouseButton1Click:Connect(function()
 				selectedTarget = plr
 				dropdown.Text = "Target: " .. plr.Name
@@ -179,14 +173,14 @@ local function updatePlayerList()
 	dropdownFrame.CanvasSize = UDim2.new(0, 0, 0, count * 34)
 end
 
--- Pick random target based on settings
+-- ランダムターゲット選択関数
 local function pickRandomTarget()
 	local candidates = {}
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
 			if not sameTeamEnabled then
 				if player.Team and plr.Team == player.Team then
-					-- Skip same team
+					-- 同チームなら除外
 				else
 					table.insert(candidates, plr)
 				end
@@ -203,19 +197,16 @@ local function pickRandomTarget()
 	end
 
 	if randomTypeClose then
-		-- Sort by distance ascending
-		table.sort(candidates, function(a,b)
-			if not (a.Character and a.Character:FindFirstChild("HumanoidRootPart")) then return false end
-			if not (b.Character and b.Character:FindFirstChild("HumanoidRootPart")) then return true end
-			local aPos = a.Character.HumanoidRootPart.Position
-			local bPos = b.Character.HumanoidRootPart.Position
-			local myPos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position or Vector3.new()
-			return (aPos - myPos).Magnitude < (bPos - myPos).Magnitude
+		table.sort(candidates, function(a, b)
+			local aRoot = a.Character and a.Character:FindFirstChild("HumanoidRootPart")
+			local bRoot = b.Character and b.Character:FindFirstChild("HumanoidRootPart")
+			local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+			if not (aRoot and bRoot and myRoot) then return false end
+			return (aRoot.Position - myRoot.Position).Magnitude < (bRoot.Position - myRoot.Position).Magnitude
 		end)
 		selectedTarget = candidates[1]
 	else
-		-- Completely random
-		selectedTarget = candidates[math.random(1,#candidates)]
+		selectedTarget = candidates[math.random(1, #candidates)]
 	end
 
 	if selectedTarget then
@@ -223,7 +214,7 @@ local function pickRandomTarget()
 	end
 end
 
--- Attach red outlined name/distance/hp billboard
+-- Billboard＆Box ESP作成
 local function attachBillboard(target)
 	if targetBillboard then
 		targetBillboard:Destroy()
@@ -236,7 +227,7 @@ local function attachBillboard(target)
 	if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
 		local billboard = Instance.new("BillboardGui")
 		billboard.Name = "TargetBillboard"
-		billboard.Size = UDim2.new(0.15, 0, 0.08, 0) -- Scale size
+		billboard.Size = UDim2.new(0.15, 0, 0.08, 0)
 		billboard.StudsOffset = Vector3.new(0, 3, 0)
 		billboard.AlwaysOnTop = true
 		billboard.Parent = target.Character.HumanoidRootPart
@@ -282,7 +273,7 @@ local function attachBillboard(target)
 
 		targetBillboard = billboard
 
-		-- Update text every frame
+		-- 毎フレーム更新
 		targetBillboardConnection = RunService.Heartbeat:Connect(function()
 			if not target or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
 				if targetBillboard then
@@ -310,7 +301,6 @@ local function attachBillboard(target)
 	end
 end
 
--- Attach green box visible through walls
 local function attachBox(target)
 	if targetBoxBillboard then
 		targetBoxBillboard:Destroy()
@@ -334,7 +324,7 @@ local function attachBox(target)
 	end
 end
 
--- Update UI buttons text for toggles
+-- ボタンのテキスト更新
 local function updateButtonsText()
 	moveButton.Text = moving and "Move: ON" or "Move: OFF"
 	camButton.Text = camLock and "Cam Lock: ON" or "Cam Lock: OFF"
@@ -346,7 +336,7 @@ end
 updatePlayerList()
 updateButtonsText()
 
--- Button click events
+-- ボタン押下イベント
 dropdown.MouseButton1Click:Connect(function()
 	dropdownFrame.Visible = not dropdownFrame.Visible
 end)
@@ -387,22 +377,22 @@ minButton.MouseButton1Click:Connect(function()
 	minimized = not minimized
 	if minimized then
 		dropdownFrame.Visible = false
-		TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0,360,0,30)}):Play()
+		TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 360, 0, 30)}):Play()
 		minButton.Text = "▢"
 	else
-		TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0,360,0,270)}):Play()
+		TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 360, 0, 270)}):Play()
 		minButton.Text = "_"
 	end
 end)
 
 closeButton.MouseButton1Click:Connect(function()
 	screenGui:Destroy()
-	followBlock:Destroy()
+	destroyFollowPlatform()
 end)
 
--- Main loop
+-- メインループ
 RunService.Heartbeat:Connect(function()
-	-- Update billboard and box for selected target (keep even if dead)
+	-- ターゲットBillboard＆Box管理
 	if selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
 		if not targetBillboard or targetBillboard.Parent ~= selectedTarget.Character.HumanoidRootPart then
 			attachBillboard(selectedTarget)
@@ -415,74 +405,84 @@ RunService.Heartbeat:Connect(function()
 			targetBillboard:Destroy()
 			targetBillboard = nil
 		end
-		if targetBillboardConnection then
-			targetBillboardConnection:Disconnect()
-			targetBillboardConnection = nil
-		end
 		if targetBoxBillboard then
 			targetBoxBillboard:Destroy()
 			targetBoxBillboard = nil
 		end
+		if targetBillboardConnection then
+			targetBillboardConnection:Disconnect()
+			targetBillboardConnection = nil
+		end
 	end
 
-	-- Random target picking every 0.1s if enabled
-	if randomMode then
-		pickRandomTarget()
-	end
-
-	-- Movement control
-	if moving and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+	-- 移動処理
+	if moving and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") and selectedTarget.Character:FindFirstChild("Humanoid") and selectedTarget.Character.Humanoid.Health > 0 and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 		local root = player.Character.HumanoidRootPart
 		local targetRoot = selectedTarget.Character.HumanoidRootPart
 
-		if currentTween then
-			currentTween:Cancel()
-			currentTween = nil
+		if not followPlatform then
+			createFollowPlatform(root.Position - Vector3.new(0, 2.5, 0))
 		end
 
-		-- Start followBlock at player position
-		followBlock.Position = root.Position
+		if tween then
+			tween:Cancel()
+			tween = nil
+		end
 
-		-- Calculate time for tween based on distance and speed
-		local dist = (targetRoot.Position - followBlock.Position).Magnitude
-		local time = dist / MOVE_SPEED
+		local distance = (targetRoot.Position - followPlatform.Position).Magnitude
+		local time = distance / MOVE_SPEED
 
-		-- Tween followBlock to target position
-		currentTween = TweenService:Create(followBlock, TweenInfo.new(time, Enum.EasingStyle.Linear), {Position = targetRoot.Position})
-		currentTween:Play()
+		tween = TweenService:Create(followPlatform, TweenInfo.new(time, Enum.EasingStyle.Linear), {Position = targetRoot.Position})
+		tween:Play()
 
-		-- Teleport player to followBlock's position every frame
-		root.CFrame = followBlock.CFrame
+		if connection then
+			connection:Disconnect()
+			connection = nil
+		end
+
+		connection = RunService.RenderStepped:Connect(function()
+			if followPlatform and followPlatform.Parent and root and root.Parent then
+				root.CFrame = followPlatform.CFrame + Vector3.new(0, 2.5, 0)
+			end
+		end)
 	else
-		if currentTween then
-			currentTween:Cancel()
-			currentTween = nil
+		if followPlatform then
+			destroyFollowPlatform()
 		end
 	end
 
-	-- Camera lock (optional)
-	if camLock and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
-		camera.CameraSubject = selectedTarget.Character.HumanoidRootPart
-	else
-		camera.CameraSubject = player.Character and player.Character:FindFirstChild("HumanoidRootPart") or camera.CameraSubject
+	-- カメラロック処理
+	if camLock and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+		local camPos = camera.CFrame.Position
+		local targetPos = selectedTarget.Character.HumanoidRootPart.Position
+		local lookVector = (targetPos - camPos).Unit
+		camera.CFrame = CFrame.new(camPos, camPos + lookVector)
+	end
+
+	-- ランダムターゲット切り替え
+	if randomMode then
+		pickRandomTarget()
 	end
 end)
 
--- プレイヤーが死んだらGUIを消す（LocalPlayer限定）
+-- プレイヤーが死んだ時にGUIやFollowPlatform破棄
+player.CharacterAdded:Connect(function(char)
+	char:WaitForChild("Humanoid").Died:Connect(function()
+		selectedTarget = nil
+		dropdown.Text = "Select Player"
+		randomMode = false
+		updateButtonsText()
+		destroyFollowPlatform()
+	end)
+end)
+
+-- 初回のCharacter登録
 if player.Character and player.Character:FindFirstChild("Humanoid") then
 	player.Character.Humanoid.Died:Connect(function()
-		screenGui:Destroy()
-		followBlock:Destroy()
+		selectedTarget = nil
+		dropdown.Text = "Select Player"
+		randomMode = false
+		updateButtonsText()
+		destroyFollowPlatform()
 	end)
 end
-
--- プレイヤー追加時にリスト更新
-Players.PlayerAdded:Connect(function()
-	updatePlayerList()
-end)
--- プレイヤー離脱時にリスト更新
-Players.PlayerRemoving:Connect(function()
-	updatePlayerList()
-end)
-
-
