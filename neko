@@ -48,8 +48,7 @@ errorLabel.TextWrapped = true
 errorLabel.TextXAlignment = Enum.TextXAlignment.Center
 
 local function loadMainScript()
-	--tesuto
-	local func, err = loadstring(mainScript)
+	local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/iruka-kamone/iruka_hub/refs/heads/main/iruka"))()
 	if func then
 		func()
 	else
