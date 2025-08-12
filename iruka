@@ -1,4 +1,3 @@
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -9,6 +8,9 @@ local MOVE_SPEED = 300
 
 -- 追尾用透明パーツ
 local followPlatform = nil
+local currentTween = nil
+local followConnection = nil
+
 local function createFollowPlatform(position)
 	if followPlatform then
 		followPlatform:Destroy()
@@ -26,6 +28,14 @@ local function destroyFollowPlatform()
 	if followPlatform then
 		followPlatform:Destroy()
 		followPlatform = nil
+	end
+	if followConnection then
+		followConnection:Disconnect()
+		followConnection = nil
+	end
+	if currentTween then
+		currentTween:Cancel()
+		currentTween = nil
 	end
 end
 
@@ -145,7 +155,6 @@ local camLock = false
 local randomMode = false
 local sameTeamEnabled = false
 local randomTypeClose = true
-local currentTween = nil
 local minimized = false
 
 -- Update player list dropdown
@@ -419,92 +428,72 @@ closeButton.MouseButton1Click:Connect(function()
 	destroyFollowPlatform()
 end)
 
--- プレイヤーが死んだらターゲット解除してGUIとフォローパーツも破棄
-player.CharacterAdded:Connect(function(char)
-	local humanoid = char:WaitForChild("Humanoid")
-	humanoid.Died:Connect(function()
-		selectedTarget = nil
-		dropdown.Text = "Select Player"
-		randomMode = false
-		updateButtonsText()
-		destroyFollowPlatform()
-	end)
-end)
-
--- テレポートを行う関数（Tween使用でなめらかに動く）
+-- Tweenでなめらか追尾処理
 local function teleportTo(position)
-	local char = player.Character or player.CharacterAdded:Wait()
-	local hrp = char:WaitForChild("HumanoidRootPart")
+	if not player.Character then return end
+	local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
 
-	createFollowPlatform(hrp.Position - Vector3.new(0, 2.5, 0))
-
-	local distance = (position - followPlatform.Position).Magnitude
-	local time = distance / MOVE_SPEED
+	if not followPlatform or not followPlatform.Parent then
+		createFollowPlatform(hrp.Position - Vector3.new(0, 2.5, 0))
+	end
 
 	if currentTween then
 		currentTween:Cancel()
 		currentTween = nil
 	end
+	if followConnection then
+		followConnection:Disconnect()
+		followConnection = nil
+	end
 
-	currentTween = TweenService:Create(followPlatform, TweenInfo.new(time, Enum.EasingStyle.Sine), {Position = position})
+	local distance = (position - followPlatform.Position).Magnitude
+	local time = distance / MOVE_SPEED
+	time = math.clamp(time, 0.1, 10)
 
-	local connection
-	connection = RunService.RenderStepped:Connect(function()
-		if followPlatform and followPlatform.Parent then
+	currentTween = TweenService:Create(followPlatform, TweenInfo.new(time, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Position = position})
+
+	followConnection = RunService.RenderStepped:Connect(function()
+		if followPlatform and followPlatform.Parent and hrp.Parent then
 			hrp.CFrame = followPlatform.CFrame + Vector3.new(0, 2.5, 0)
 		end
 	end)
 
 	currentTween:Play()
 	currentTween.Completed:Connect(function()
-		wait(0.5)
-		if connection then connection:Disconnect() end
-		destroyFollowPlatform()
+		if followConnection then
+			followConnection:Disconnect()
+			followConnection = nil
+		end
 	end)
 end
 
--- メインのループ処理
-local randomUpdateTimer = 0
-RunService.Heartbeat:Connect(function(delta)
+-- CamLock処理
+RunService.Heartbeat:Connect(function()
+	if camLock and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
+		local hrp = selectedTarget.Character.HumanoidRootPart
+		local cam = workspace.CurrentCamera
+		cam.CFrame = CFrame.new(cam.CFrame.Position, hrp.Position)
+	end
+end)
+
+-- Main loop
+RunService.Heartbeat:Connect(function()
 	if randomMode then
-		randomUpdateTimer = randomUpdateTimer + delta
 		if randomTypeClose then
-			-- Close modeは0.1秒ごとにターゲット更新
-			if randomUpdateTimer >= 0.1 then
-				randomUpdateTimer = 0
-				pickRandomTarget()
-			end
+			pickRandomTarget()
 		else
-			-- Full modeはターゲットが死んだら変更
-			if selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("Humanoid") and selectedTarget.Character.Humanoid.Health > 0 then
-				-- 生きているので変更なし
-			else
-				pickRandomTarget()
-			end
+			-- full random target remains until dead, handled in pickRandomTarget()
 		end
 	end
 
-	if selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
-		attachBillboard(selectedTarget)
-		attachBox(selectedTarget)
-
-		if moving then
-			local targetPos = selectedTarget.Character.HumanoidRootPart.Position - Vector3.new(0, 3, 0)
-			teleportTo(targetPos)
-		else
-			destroyFollowPlatform()
-		end
+	if moving and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
+		local targetPos = selectedTarget.Character.HumanoidRootPart.Position - Vector3.new(0, 3, 0)
+		teleportTo(targetPos)
 	else
 		destroyFollowPlatform()
 	end
 
-	-- カメラロック：自分のカメラがターゲットを常に見る
-	if camLock and selectedTarget and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-		local hrp = player.Character.HumanoidRootPart
-		local targetHrp = selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart")
-		if targetHrp then
-			local camPos = camera.CFrame.Position
-			camera.CFrame = CFrame.lookAt(camPos, targetHrp.Position)
-		end
-	end
+	attachBillboard(selectedTarget)
+	attachBox(selectedTarget)
 end)
