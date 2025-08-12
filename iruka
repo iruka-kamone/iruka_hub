@@ -1,6 +1,6 @@
+local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
@@ -17,7 +17,7 @@ local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 screenGui.Name = "FollowGui"
 
 local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 360, 0, 270)
+mainFrame.Size = UDim2.new(0, 360, 0, 310) -- 高さ少し増やしてボタン追加分確保
 mainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(15,15,15)
 mainFrame.BackgroundTransparency = 0.4
@@ -86,8 +86,9 @@ local uiListLayout = Instance.new("UIListLayout", dropdownFrame)
 uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 uiListLayout.Padding = UDim.new(0,4)
 
+-- 右側ボタン配置用Frame
 local buttonFrame = Instance.new("Frame", contentFrame)
-buttonFrame.Size = UDim2.new(0, 120, 0, 180)
+buttonFrame.Size = UDim2.new(0, 160, 0, 250) -- 少し高さ増やしてボタン追加分確保
 buttonFrame.Position = UDim2.new(0, 190, 0, 10)
 buttonFrame.BackgroundTransparency = 1
 
@@ -95,6 +96,7 @@ local buttonLayout = Instance.new("UIListLayout", buttonFrame)
 buttonLayout.SortOrder = Enum.SortOrder.LayoutOrder
 buttonLayout.Padding = UDim.new(0,4)
 
+-- ボタン作成関数
 local function makeButton(text, color)
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, 0, 0, 30)
@@ -111,13 +113,18 @@ local refreshButton = makeButton("更新", Color3.fromRGB(70,70,70))
 local moveButton = makeButton("移動: OFF", Color3.fromRGB(70,70,70))
 local camButton = makeButton("カメラロック: OFF", Color3.fromRGB(90,90,90))
 local randomButton = makeButton("ランダム: OFF", Color3.fromRGB(110,110,110))
+local includeTeamButton = makeButton("同チームも対象: OFF", Color3.fromRGB(70,70,70))
+local randomTypeButton = makeButton("選択: 完全ランダム", Color3.fromRGB(70,70,70))
 
 -- 状態
 local selectedTarget = nil
 local targetBillboard = nil
+local targetBoxBillboard = nil
 local moving = false
 local camLock = false
 local randomMode = false
+local includeSameTeam = false
+local randomModeType = "random" -- "random" or "nearest"
 local currentTween = nil
 local minimized = false
 
@@ -157,83 +164,173 @@ local function pickRandomTarget()
 	local candidates = {}
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
-			table.insert(candidates, plr)
+			if includeSameTeam or (not includeSameTeam and (not plr.Team or plr.Team ~= player.Team)) then
+				table.insert(candidates, plr)
+			end
 		end
 	end
-	if #candidates > 0 then
-		selectedTarget = candidates[math.random(1, #candidates)]
-		dropdown.Text = "対象: " .. selectedTarget.Name
-	else
+	if #candidates == 0 then
 		selectedTarget = nil
 		dropdown.Text = "対象なし"
+		return
 	end
+
+	if randomModeType == "random" then
+		selectedTarget = candidates[math.random(1, #candidates)]
+	elseif randomModeType == "nearest" then
+		table.sort(candidates, function(a,b)
+			local aPos = a.Character.HumanoidRootPart.Position
+			local bPos = b.Character.HumanoidRootPart.Position
+			local pPos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position or Vector3.new()
+			return (aPos - pPos).Magnitude < (bPos - pPos).Magnitude
+		end)
+		selectedTarget = candidates[1]
+	end
+
+	dropdown.Text = "対象: " .. selectedTarget.Name
 end
 
--- ターゲットの上に赤いビルボード(名前・距離・HP表示)と壁越しで見える緑の四角
+-- 赤い輪郭つきの名前・距離・HP表示＆緑の箱（壁越し見えるBillboardGui）
 local function attachBillboard(target)
 	if targetBillboard then
 		targetBillboard:Destroy()
 		targetBillboard = nil
 	end
+	if targetBoxBillboard then
+		targetBoxBillboard:Destroy()
+		targetBoxBillboard = nil
+	end
 	if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+		-- 名前距離HPのBillboardGui
 		local billboard = Instance.new("BillboardGui")
-		billboard.Size = UDim2.new(0.15, 0, 0.05, 0) -- スケール指定
-		billboard.StudsOffset = Vector3.new(0, 3, 0)
+		billboard.Name = "TargetInfoBillboard"
+		billboard.Size = UDim2.new(0, 140, 0, 50)
 		billboard.AlwaysOnTop = true
+		billboard.StudsOffset = Vector3.new(0, 3, 0)
 		billboard.Parent = target.Character.HumanoidRootPart
 
-		local frame = Instance.new("Frame", billboard)
-		frame.Size = UDim2.new(1, 0, 1, 0)
-		frame.BackgroundColor3 = Color3.new(1, 0, 0)
-		frame.BackgroundTransparency = 1 -- 赤枠透明
+		-- 輪郭ラベル（赤）
+		local outlineLabel = Instance.new("TextLabel", billboard)
+		outlineLabel.Size = UDim2.new(1,0,1,0)
+		outlineLabel.BackgroundTransparency = 1
+		outlineLabel.TextColor3 = Color3.fromRGB(200,0,0)
+		outlineLabel.TextStrokeColor3 = Color3.fromRGB(200,0,0)
+		outlineLabel.TextStrokeTransparency = 0
+		outlineLabel.Font = Enum.Font.GothamBold
+		outlineLabel.TextSize = 16
+		outlineLabel.Text = target.Name
+		outlineLabel.TextXAlignment = Enum.TextXAlignment.Center
+		outlineLabel.TextYAlignment = Enum.TextYAlignment.Top
+		outlineLabel.ZIndex = 1
 
-		local label = Instance.new("TextLabel", frame)
-		label.Size = UDim2.new(1, 0, 1, 0)
-		label.BackgroundTransparency = 1
-		label.TextColor3 = Color3.fromRGB(255, 0, 0)
-		label.TextStrokeTransparency = 0
-		label.Font = Enum.Font.GothamBold
-		label.TextSize = 12
-		label.TextXAlignment = Enum.TextXAlignment.Center
-		label.TextYAlignment = Enum.TextYAlignment.Center
-		label.Parent = frame
+		-- メインテキスト（白）
+		local mainLabel = Instance.new("TextLabel", billboard)
+		mainLabel.Size = UDim2.new(1,0,1,0)
+		mainLabel.BackgroundTransparency = 1
+		mainLabel.TextColor3 = Color3.new(1,1,1)
+		mainLabel.TextStrokeColor3 = Color3.fromRGB(200,0,0)
+		mainLabel.TextStrokeTransparency = 0
+		mainLabel.Font = Enum.Font.GothamBold
+		mainLabel.TextSize = 16
+		mainLabel.Text = target.Name
+		mainLabel.TextXAlignment = Enum.TextXAlignment.Center
+		mainLabel.TextYAlignment = Enum.TextYAlignment.Top
+		mainLabel.ZIndex = 2
+
+		-- 距離ラベル（右側上寄せ）
+		local distanceLabel = Instance.new("TextLabel", billboard)
+		distanceLabel.Size = UDim2.new(0, 50, 0, 20)
+		distanceLabel.Position = UDim2.new(1, 5, 0, 0)
+		distanceLabel.BackgroundTransparency = 1
+		distanceLabel.TextColor3 = Color3.new(1,1,1)
+		distanceLabel.TextStrokeColor3 = Color3.fromRGB(200,0,0)
+		distanceLabel.TextStrokeTransparency = 0
+		distanceLabel.Font = Enum.Font.GothamBold
+		distanceLabel.TextSize = 14
+		distanceLabel.Text = "0"
+		distanceLabel.TextXAlignment = Enum.TextXAlignment.Center
+		distanceLabel.TextYAlignment = Enum.TextYAlignment.Top
+		distanceLabel.ZIndex = 2
+
+		-- HPラベル（名前の下）
+		local hpLabel = Instance.new("TextLabel", billboard)
+		hpLabel.Size = UDim2.new(1, 0, 0, 20)
+		hpLabel.Position = UDim2.new(0, 0, 0, 25)
+		hpLabel.BackgroundTransparency = 1
+		hpLabel.TextColor3 = Color3.new(1,1,1)
+		hpLabel.TextStrokeColor3 = Color3.fromRGB(200,0,0)
+		hpLabel.TextStrokeTransparency = 0
+		hpLabel.Font = Enum.Font.GothamBold
+		hpLabel.TextSize = 14
+		hpLabel.Text = "HP: 0"
+		hpLabel.TextXAlignment = Enum.TextXAlignment.Center
+		hpLabel.ZIndex = 2
 
 		targetBillboard = billboard
 
-		-- 緑の四角を壁越しで見えるようにBillboardGuiで表示
-		local greenBillboard = Instance.new("BillboardGui")
-		greenBillboard.Size = UDim2.new(0.1, 0, 0.1, 0) -- スケールで固定サイズ
-		greenBillboard.StudsOffset = Vector3.new(0, 2, 0)
-		greenBillboard.AlwaysOnTop = true
-		greenBillboard.Parent = target.Character.HumanoidRootPart
+		-- 緑の箱BillboardGui（壁越しでも見える）
+		local boxBillboard = Instance.new("BillboardGui")
+		boxBillboard.Name = "TargetBoxBillboard"
+		boxBillboard.Size = UDim2.new(0, 20, 0, 20)
+		boxBillboard.AlwaysOnTop = false
+		boxBillboard.ExtentsOffset = Vector3.new(0, -1, 0)
+		boxBillboard.Parent = target.Character.HumanoidRootPart
 
-		local greenFrame = Instance.new("Frame", greenBillboard)
-		greenFrame.Size = UDim2.new(1, 0, 1, 0)
-		greenFrame.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-		greenFrame.BackgroundTransparency = 0.7
-		greenFrame.BorderColor3 = Color3.fromRGB(0, 200, 0)
-		greenFrame.BorderSizePixel = 2
+		local boxFrame = Instance.new("Frame", boxBillboard)
+		boxFrame.Size = UDim2.new(1,0,1,0)
+		boxFrame.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+		boxFrame.BackgroundTransparency = 0.6
+		boxFrame.BorderSizePixel = 0
+		boxFrame.ZIndex = 1
 
-		-- 毎フレーム距離・HP・名前更新
-		RunService:BindToRenderStep("UpdateBillboard", Enum.RenderPriority.Camera.Value + 1, function()
-			if billboard.Parent and target.Character and target.Character:FindFirstChild("Humanoid") and target.Character.Humanoid.Health > 0 then
-				local dist = (target.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
-				label.Text = target.Name .. "  " .. string.format("%.1f", dist) .. "m\nHP: " .. math.floor(target.Character.Humanoid.Health)
+		targetBoxBillboard = boxBillboard
+
+		-- 毎フレーム更新
+		if targetBillboardConnection then
+			targetBillboardConnection:Disconnect()
+			targetBillboardConnection = nil
+		end
+		targetBillboardConnection = RunService.Heartbeat:Connect(function()
+			if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+				local distM = math.floor((target.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude)
+				distanceLabel.Text = tostring(distM) .. "m"
+
+				local humanoid = target.Character:FindFirstChild("Humanoid")
+				if humanoid then
+					hpLabel.Text = string.format("HP: %d / %d", math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
+				else
+					hpLabel.Text = "HP: 0 / 0"
+				end
 			else
-				label.Text = ""
+				if targetBillboard then
+					targetBillboard:Destroy()
+					targetBillboard = nil
+				end
+				if targetBoxBillboard then
+					targetBoxBillboard:Destroy()
+					targetBoxBillboard = nil
+				end
+				if targetBillboardConnection then
+					targetBillboardConnection:Disconnect()
+					targetBillboardConnection = nil
+				end
 			end
 		end)
 	end
 end
 
+local targetBillboardConnection = nil
+
 updatePlayerList()
 
--- ボタン処理
+-- ボタン動作
 dropdown.MouseButton1Click:Connect(function()
 	dropdownFrame.Visible = not dropdownFrame.Visible
 end)
 
-refreshButton.MouseButton1Click:Connect(updatePlayerList)
+refreshButton.MouseButton1Click:Connect(function()
+	updatePlayerList()
+end)
 
 moveButton.MouseButton1Click:Connect(function()
 	moving = not moving
@@ -253,6 +350,21 @@ randomButton.MouseButton1Click:Connect(function()
 	end
 end)
 
+includeTeamButton.MouseButton1Click:Connect(function()
+	includeSameTeam = not includeSameTeam
+	includeTeamButton.Text = includeSameTeam and "同チームも対象: ON" or "同チームも対象: OFF"
+end)
+
+randomTypeButton.MouseButton1Click:Connect(function()
+	if randomModeType == "random" then
+		randomModeType = "nearest"
+		randomTypeButton.Text = "選択: 近い順"
+	else
+		randomModeType = "random"
+		randomTypeButton.Text = "選択: 完全ランダム"
+	end
+end)
+
 minButton.MouseButton1Click:Connect(function()
 	minimized = not minimized
 	if minimized then
@@ -260,7 +372,7 @@ minButton.MouseButton1Click:Connect(function()
 		TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0,360,0,30)}):Play()
 		minButton.Text = "▢"
 	else
-		TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0,360,0,270)}):Play()
+		TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0,360,0,310)}):Play()
 		minButton.Text = "_"
 	end
 end)
@@ -268,6 +380,10 @@ end)
 closeButton.MouseButton1Click:Connect(function()
 	screenGui:Destroy()
 	followBlock:Destroy()
+	if targetBillboardConnection then
+		targetBillboardConnection:Disconnect()
+		targetBillboardConnection = nil
+	end
 end)
 
 -- 動作ループ
@@ -281,6 +397,14 @@ RunService.Heartbeat:Connect(function()
 		if targetBillboard then
 			targetBillboard:Destroy()
 			targetBillboard = nil
+		end
+		if targetBoxBillboard then
+			targetBoxBillboard:Destroy()
+			targetBoxBillboard = nil
+		end
+		if targetBillboardConnection then
+			targetBillboardConnection:Disconnect()
+			targetBillboardConnection = nil
 		end
 	end
 
@@ -320,3 +444,4 @@ RunService.Heartbeat:Connect(function()
 		end
 	end
 end)
+
