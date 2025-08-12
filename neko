@@ -1,0 +1,74 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+local PASSWORD = "irukakawaii"  -- パスワード
+
+-- GUI作成
+local passwordGui = Instance.new("ScreenGui", PlayerGui)
+passwordGui.Name = "PasswordGui"
+
+local frame = Instance.new("Frame", passwordGui)
+frame.Size = UDim2.new(0, 300, 0, 120)
+frame.Position = UDim2.new(0.5, -150, 0.5, -60)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BorderSizePixel = 0
+
+local inputBox = Instance.new("TextBox", frame)
+inputBox.Size = UDim2.new(1, -20, 0, 40)
+inputBox.Position = UDim2.new(0, 10, 0, 10)
+inputBox.PlaceholderText = "パスワードを入力"
+inputBox.ClearTextOnFocus = false
+inputBox.Text = ""
+inputBox.TextColor3 = Color3.new(1,1,1)
+inputBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
+inputBox.Font = Enum.Font.Gotham
+inputBox.TextSize = 18
+inputBox.TextStrokeTransparency = 0.8
+inputBox.TextXAlignment = Enum.TextXAlignment.Center
+
+local submitButton = Instance.new("TextButton", frame)
+submitButton.Size = UDim2.new(0, 100, 0, 40)
+submitButton.Position = UDim2.new(1, -110, 1, -50)
+submitButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
+submitButton.TextColor3 = Color3.new(1,1,1)
+submitButton.Text = "送信"
+submitButton.Font = Enum.Font.GothamSemibold
+submitButton.TextSize = 18
+
+local errorLabel = Instance.new("TextLabel", frame)
+errorLabel.Size = UDim2.new(1, -120, 0, 20)
+errorLabel.Position = UDim2.new(0, 0, 1.3, -80)
+errorLabel.BackgroundTransparency = 1
+errorLabel.Text = ""
+errorLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+errorLabel.Font = Enum.Font.Gotham
+errorLabel.TextSize = 14
+errorLabel.TextWrapped = true
+errorLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local function loadMainScript()
+	--tesuto
+	local func, err = loadstring(mainScript)
+	if func then
+		func()
+	else
+		warn("メインスクリプト読み込みエラー:", err)
+	end
+end
+
+local function checkPassword()
+	if inputBox.Text == PASSWORD then
+		passwordGui:Destroy()
+		loadMainScript()
+	else
+		errorLabel.Text = "パスワードが違います。もう一度入力してください。"
+	end
+end
+
+submitButton.MouseButton1Click:Connect(checkPassword)
+inputBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		checkPassword()
+	end
+end)
