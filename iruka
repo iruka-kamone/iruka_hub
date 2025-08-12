@@ -1,0 +1,322 @@
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local MOVE_SPEED = 300
+
+local followBlock = Instance.new("Part", workspace)
+followBlock.Name = "FollowBlock"
+followBlock.Anchored = true
+followBlock.CanCollide = false
+followBlock.Transparency = 1
+followBlock.Size = Vector3.new(2,2,2)
+
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "FollowGui"
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 360, 0, 270)
+mainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+mainFrame.BackgroundTransparency = 0.4
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+local titleBar = Instance.new("Frame", mainFrame)
+titleBar.Size = UDim2.new(1,0,0,30)
+titleBar.BackgroundColor3 = Color3.fromRGB(25,25,25)
+
+local titleLabel = Instance.new("TextLabel", titleBar)
+titleLabel.Size = UDim2.new(1, -80, 1, 0)
+titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "iruka hub"
+titleLabel.TextColor3 = Color3.new(1,1,1)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 18
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local minButton = Instance.new("TextButton", titleBar)
+minButton.Size = UDim2.new(0, 35, 0, 25)
+minButton.Position = UDim2.new(1, -75, 0, 2)
+minButton.BackgroundColor3 = Color3.fromRGB(60,60,60)
+minButton.TextColor3 = Color3.new(1,1,1)
+minButton.Text = "_"
+minButton.Font = Enum.Font.GothamBold
+minButton.TextSize = 22
+
+local closeButton = Instance.new("TextButton", titleBar)
+closeButton.Size = UDim2.new(0, 35, 0, 25)
+closeButton.Position = UDim2.new(1, -35, 0, 2)
+closeButton.BackgroundColor3 = Color3.fromRGB(180,50,50)
+closeButton.TextColor3 = Color3.new(1,1,1)
+closeButton.Text = "×"
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 22
+
+local contentFrame = Instance.new("Frame", mainFrame)
+contentFrame.Size = UDim2.new(1, 0, 1, -30)
+contentFrame.Position = UDim2.new(0, 0, 0, 30)
+contentFrame.BackgroundTransparency = 1
+
+-- ドロップダウン
+local dropdown = Instance.new("TextButton", contentFrame)
+dropdown.Size = UDim2.new(0, 160, 0, 30)
+dropdown.Position = UDim2.new(0, 10, 0, 10)
+dropdown.BackgroundColor3 = Color3.fromRGB(40,40,40)
+dropdown.TextColor3 = Color3.new(1,1,1)
+dropdown.Text = "プレイヤーを選択"
+dropdown.Font = Enum.Font.Gotham
+dropdown.TextSize = 14
+
+local dropdownFrame = Instance.new("ScrollingFrame", contentFrame)
+dropdownFrame.Size = UDim2.new(0, 160, 0, 120)
+dropdownFrame.Position = UDim2.new(0, 10, 0, 40)
+dropdownFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+dropdownFrame.Visible = false
+dropdownFrame.ClipsDescendants = true
+dropdownFrame.BorderSizePixel = 0
+dropdownFrame.ScrollBarThickness = 6
+
+local uiListLayout = Instance.new("UIListLayout", dropdownFrame)
+uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiListLayout.Padding = UDim.new(0,4)
+
+local buttonFrame = Instance.new("Frame", contentFrame)
+buttonFrame.Size = UDim2.new(0, 120, 0, 180)
+buttonFrame.Position = UDim2.new(0, 190, 0, 10)
+buttonFrame.BackgroundTransparency = 1
+
+local buttonLayout = Instance.new("UIListLayout", buttonFrame)
+buttonLayout.SortOrder = Enum.SortOrder.LayoutOrder
+buttonLayout.Padding = UDim.new(0,4)
+
+local function makeButton(text, color)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, 30)
+	btn.BackgroundColor3 = color
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Text = text
+	btn.Font = Enum.Font.GothamSemibold
+	btn.TextSize = 16
+	btn.Parent = buttonFrame
+	return btn
+end
+
+local refreshButton = makeButton("更新", Color3.fromRGB(70,70,70))
+local moveButton = makeButton("移動: OFF", Color3.fromRGB(70,70,70))
+local camButton = makeButton("カメラロック: OFF", Color3.fromRGB(90,90,90))
+local randomButton = makeButton("ランダム: OFF", Color3.fromRGB(110,110,110))
+
+-- 状態
+local selectedTarget = nil
+local targetBillboard = nil
+local moving = false
+local camLock = false
+local randomMode = false
+local currentTween = nil
+local minimized = false
+
+-- プレイヤーリスト更新
+local function updatePlayerList()
+	dropdownFrame:ClearAllChildren()
+	uiListLayout = Instance.new("UIListLayout", dropdownFrame)
+	uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	uiListLayout.Padding = UDim.new(0,4)
+
+	local count = 0
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player then
+			local btn = Instance.new("TextButton", dropdownFrame)
+			btn.Size = UDim2.new(1, 0, 0, 30)
+			btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+			btn.TextColor3 = Color3.new(1, 1, 1)
+			btn.Text = plr.Name
+			btn.Font = Enum.Font.GothamSemibold
+			btn.TextSize = 16
+
+			btn.MouseButton1Click:Connect(function()
+				selectedTarget = plr
+				dropdown.Text = "対象: " .. plr.Name
+				dropdownFrame.Visible = false
+				randomMode = false
+				randomButton.Text = "ランダム: OFF"
+			end)
+			count += 1
+		end
+	end
+	dropdownFrame.CanvasSize = UDim2.new(0, 0, 0, count * 34)
+end
+
+-- ランダムターゲット選択
+local function pickRandomTarget()
+	local candidates = {}
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
+			table.insert(candidates, plr)
+		end
+	end
+	if #candidates > 0 then
+		selectedTarget = candidates[math.random(1, #candidates)]
+		dropdown.Text = "対象: " .. selectedTarget.Name
+	else
+		selectedTarget = nil
+		dropdown.Text = "対象なし"
+	end
+end
+
+-- ターゲットの上に赤いビルボード(名前・距離・HP表示)と壁越しで見える緑の四角
+local function attachBillboard(target)
+	if targetBillboard then
+		targetBillboard:Destroy()
+		targetBillboard = nil
+	end
+	if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+		local billboard = Instance.new("BillboardGui")
+		billboard.Size = UDim2.new(0.15, 0, 0.05, 0) -- スケール指定
+		billboard.StudsOffset = Vector3.new(0, 3, 0)
+		billboard.AlwaysOnTop = true
+		billboard.Parent = target.Character.HumanoidRootPart
+
+		local frame = Instance.new("Frame", billboard)
+		frame.Size = UDim2.new(1, 0, 1, 0)
+		frame.BackgroundColor3 = Color3.new(1, 0, 0)
+		frame.BackgroundTransparency = 1 -- 赤枠透明
+
+		local label = Instance.new("TextLabel", frame)
+		label.Size = UDim2.new(1, 0, 1, 0)
+		label.BackgroundTransparency = 1
+		label.TextColor3 = Color3.fromRGB(255, 0, 0)
+		label.TextStrokeTransparency = 0
+		label.Font = Enum.Font.GothamBold
+		label.TextSize = 12
+		label.TextXAlignment = Enum.TextXAlignment.Center
+		label.TextYAlignment = Enum.TextYAlignment.Center
+		label.Parent = frame
+
+		targetBillboard = billboard
+
+		-- 緑の四角を壁越しで見えるようにBillboardGuiで表示
+		local greenBillboard = Instance.new("BillboardGui")
+		greenBillboard.Size = UDim2.new(0.1, 0, 0.1, 0) -- スケールで固定サイズ
+		greenBillboard.StudsOffset = Vector3.new(0, 2, 0)
+		greenBillboard.AlwaysOnTop = true
+		greenBillboard.Parent = target.Character.HumanoidRootPart
+
+		local greenFrame = Instance.new("Frame", greenBillboard)
+		greenFrame.Size = UDim2.new(1, 0, 1, 0)
+		greenFrame.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+		greenFrame.BackgroundTransparency = 0.7
+		greenFrame.BorderColor3 = Color3.fromRGB(0, 200, 0)
+		greenFrame.BorderSizePixel = 2
+
+		-- 毎フレーム距離・HP・名前更新
+		RunService:BindToRenderStep("UpdateBillboard", Enum.RenderPriority.Camera.Value + 1, function()
+			if billboard.Parent and target.Character and target.Character:FindFirstChild("Humanoid") and target.Character.Humanoid.Health > 0 then
+				local dist = (target.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+				label.Text = target.Name .. "  " .. string.format("%.1f", dist) .. "m\nHP: " .. math.floor(target.Character.Humanoid.Health)
+			else
+				label.Text = ""
+			end
+		end)
+	end
+end
+
+updatePlayerList()
+
+-- ボタン処理
+dropdown.MouseButton1Click:Connect(function()
+	dropdownFrame.Visible = not dropdownFrame.Visible
+end)
+
+refreshButton.MouseButton1Click:Connect(updatePlayerList)
+
+moveButton.MouseButton1Click:Connect(function()
+	moving = not moving
+	moveButton.Text = moving and "移動: ON" or "移動: OFF"
+end)
+
+camButton.MouseButton1Click:Connect(function()
+	camLock = not camLock
+	camButton.Text = camLock and "カメラロック: ON" or "カメラロック: OFF"
+end)
+
+randomButton.MouseButton1Click:Connect(function()
+	randomMode = not randomMode
+	randomButton.Text = randomMode and "ランダム: ON" or "ランダム: OFF"
+	if randomMode then
+		pickRandomTarget()
+	end
+end)
+
+minButton.MouseButton1Click:Connect(function()
+	minimized = not minimized
+	if minimized then
+		dropdownFrame.Visible = false
+		TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0,360,0,30)}):Play()
+		minButton.Text = "▢"
+	else
+		TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0,360,0,270)}):Play()
+		minButton.Text = "_"
+	end
+end)
+
+closeButton.MouseButton1Click:Connect(function()
+	screenGui:Destroy()
+	followBlock:Destroy()
+end)
+
+-- 動作ループ
+RunService.Heartbeat:Connect(function()
+	-- Billboard更新
+	if selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("Humanoid") and selectedTarget.Character.Humanoid.Health > 0 then
+		if not targetBillboard or targetBillboard.Parent ~= selectedTarget.Character.HumanoidRootPart then
+			attachBillboard(selectedTarget)
+		end
+	else
+		if targetBillboard then
+			targetBillboard:Destroy()
+			targetBillboard = nil
+		end
+	end
+
+	-- ランダムモードのときターゲットが死んだら次を選ぶ
+	if randomMode and (not selectedTarget or not selectedTarget.Character or not selectedTarget.Character:FindFirstChild("Humanoid") or selectedTarget.Character.Humanoid.Health <= 0) then
+		pickRandomTarget()
+	end
+
+	-- 移動処理
+	if moving and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("Humanoid") and selectedTarget.Character.Humanoid.Health > 0 and player.Character then
+		local root = player.Character:FindFirstChild("HumanoidRootPart")
+		local targetRoot = selectedTarget.Character:FindFirstChild("HumanoidRootPart")
+		if root and targetRoot then
+			if currentTween then
+				currentTween:Cancel()
+				currentTween = nil
+			end
+			local dist = (targetRoot.Position - followBlock.Position).Magnitude
+			local time = dist / MOVE_SPEED
+			currentTween = TweenService:Create(followBlock, TweenInfo.new(time, Enum.EasingStyle.Linear), {Position = targetRoot.Position})
+			currentTween:Play()
+			root.CFrame = followBlock.CFrame
+		end
+	elseif not moving and currentTween then
+		currentTween:Cancel()
+		currentTween = nil
+	end
+
+	-- カメラロック
+	if camLock and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("Humanoid") and selectedTarget.Character.Humanoid.Health > 0 and camera then
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local targetRoot = selectedTarget.Character:FindFirstChild("HumanoidRootPart")
+		if root and targetRoot then
+			local lookVector = (targetRoot.Position - root.Position).Unit
+			local currentPos = camera.CFrame.Position
+			camera.CFrame = CFrame.new(currentPos, currentPos + lookVector)
+		end
+	end
+end)
