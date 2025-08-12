@@ -425,56 +425,64 @@ RunService.Heartbeat:Connect(function()
 		end
 	end
 
-	-- ランダムモードの時ターゲットが死んだり消えたら次を選ぶ
+	-- Random target picking every 0.1s if enabled
 	if randomMode then
-		local valid = false
-		if selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("Humanoid") then
-			local humanoid = selectedTarget.Character.Humanoid
-			if humanoid.Health > 0 then
-				valid = true
-			end
+		pickRandomTarget()
+	end
+
+	-- Movement control
+	if moving and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+		local root = player.Character.HumanoidRootPart
+		local targetRoot = selectedTarget.Character.HumanoidRootPart
+
+		if currentTween then
+			currentTween:Cancel()
+			currentTween = nil
 		end
-		if not valid then
-			pickRandomTarget()
+
+		-- Start followBlock at player position
+		followBlock.Position = root.Position
+
+		-- Calculate time for tween based on distance and speed
+		local dist = (targetRoot.Position - followBlock.Position).Magnitude
+		local time = dist / MOVE_SPEED
+
+		-- Tween followBlock to target position
+		currentTween = TweenService:Create(followBlock, TweenInfo.new(time, Enum.EasingStyle.Linear), {Position = targetRoot.Position})
+		currentTween:Play()
+
+		-- Teleport player to followBlock's position every frame
+		root.CFrame = followBlock.CFrame
+	else
+		if currentTween then
+			currentTween:Cancel()
+			currentTween = nil
 		end
 	end
 
-	-- 移動処理 修正版
-	if moving and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("Humanoid") and selectedTarget.Character.Humanoid.Health > 0 and player.Character then
-		local root = player.Character:FindFirstChild("HumanoidRootPart")
-		local targetRoot = selectedTarget.Character:FindFirstChild("HumanoidRootPart")
-		if root and targetRoot then
-			if currentTween then
-				currentTween:Cancel()
-				currentTween = nil
-			end
-
-			-- followBlockの位置を自キャラの現在位置にセット
-			followBlock.Position = root.Position
-
-			local dist = (targetRoot.Position - followBlock.Position).Magnitude
-			local time = dist / MOVE_SPEED
-
-			currentTween = TweenService:Create(followBlock, TweenInfo.new(time, Enum.EasingStyle.Linear), {Position = targetRoot.Position})
-			currentTween:Play()
-
-			-- followBlockの位置に自キャラを追従させる（毎フレーム）
-			root.CFrame = followBlock.CFrame
-		end
-	elseif not moving and currentTween then
-		currentTween:Cancel()
-		currentTween = nil
-	end
-
-	-- カメラロック
-	if camLock and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("Humanoid") and selectedTarget.Character.Humanoid.Health > 0 and camera then
-		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-		local targetRoot = selectedTarget.Character:FindFirstChild("HumanoidRootPart")
-		if root and targetRoot then
-			local lookVector = (targetRoot.Position - root.Position).Unit
-			local currentPos = camera.CFrame.Position
-			camera.CFrame = CFrame.new(currentPos, currentPos + lookVector)
-		end
+	-- Camera lock (optional)
+	if camLock and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
+		camera.CameraSubject = selectedTarget.Character.HumanoidRootPart
+	else
+		camera.CameraSubject = player.Character and player.Character:FindFirstChild("HumanoidRootPart") or camera.CameraSubject
 	end
 end)
+
+-- プレイヤーが死んだらGUIを消す（LocalPlayer限定）
+if player.Character and player.Character:FindFirstChild("Humanoid") then
+	player.Character.Humanoid.Died:Connect(function()
+		screenGui:Destroy()
+		followBlock:Destroy()
+	end)
+end
+
+-- プレイヤー追加時にリスト更新
+Players.PlayerAdded:Connect(function()
+	updatePlayerList()
+end)
+-- プレイヤー離脱時にリスト更新
+Players.PlayerRemoving:Connect(function()
+	updatePlayerList()
+end)
+
 
