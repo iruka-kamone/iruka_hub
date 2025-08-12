@@ -14,6 +14,7 @@ local connection = nil
 -- GUI作成
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 screenGui.Name = "FollowGui"
+screenGui.ResetOnSpawn =false
 
 local mainFrame = Instance.new("Frame", screenGui)
 mainFrame.Size = UDim2.new(0, 360, 0, 270)
