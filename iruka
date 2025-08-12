@@ -4,7 +4,7 @@ local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
-local MOVE_SPEED = 300
+local MOVE_SPEED = 250
 
 -- 追尾用透明パーツ
 local followPlatform = nil
