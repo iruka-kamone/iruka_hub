@@ -269,6 +269,7 @@ local function attachBillboard(target)
 		billboard.StudsOffset = Vector3.new(0, 3, 0)
 		billboard.AlwaysOnTop = true
 		billboard.Parent = target.Character.HumanoidRootPart
+		billboard.MaxDistance = 100000
 
 		local nameLabel = Instance.new("TextLabel", billboard)
 		nameLabel.Size = UDim2.new(0.6, 0, 0.6, 0)
@@ -350,6 +351,7 @@ local function attachBox(target)
 		billboard.Size = UDim2.new(0.1, 0, 0.1, 0)
 		billboard.AlwaysOnTop = true
 		billboard.Parent = target.Character.HumanoidRootPart
+		billboard.MaxDistance = 100000
 
 		local box = Instance.new("Frame", billboard)
 		box.Size = UDim2.new(1, 0, 1, 0)
