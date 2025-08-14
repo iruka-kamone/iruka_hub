@@ -451,9 +451,8 @@ local function teleportTo(position)
 
 	local distance = (position - followPlatform.Position).Magnitude
 	local time = distance / MOVE_SPEED
-	time = math.clamp(time, 0.1, 10)
 
-	currentTween = TweenService:Create(followPlatform, TweenInfo.new(time, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Position = position})
+	currentTween = TweenService:Create(followPlatform, TweenInfo.new(time, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Position = position})
 
 	followConnection = RunService.RenderStepped:Connect(function()
 		if followPlatform and followPlatform.Parent and hrp.Parent then
