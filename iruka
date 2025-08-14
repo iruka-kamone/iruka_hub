@@ -1,3 +1,4 @@
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -457,9 +458,9 @@ local function teleportTo(position)
 	followConnection = RunService.RenderStepped:Connect(function()
 		if followPlatform and followPlatform.Parent and hrp.Parent then
 			hrp.CFrame = CFrame.new(
-               followPlatform.Position + Vector3.new(0, 2.5, 0),
-               followPlatform.Position + followPlatform.CFrame.LookVector
-　　　　　　　)
+				followPlatform.Position + Vector3.new(0, 2.5, 0),
+				followPlatform.Position + followPlatform.CFrame.LookVector
+			)
 		end
 	end)
 
