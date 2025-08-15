@@ -158,6 +158,15 @@ local sameTeamEnabled = false
 local randomTypeClose = true
 local minimized = false
 
+-- Update UI buttons text for toggles
+local function updateButtonsText()
+	moveButton.Text = moving and "Move: ON" or "Move: OFF"
+	camButton.Text = camLock and "Cam Lock: ON" or "Cam Lock: OFF"
+	randomButton.Text = randomMode and "Random: ON" or "Random: OFF"
+	sameTeamButton.Text = sameTeamEnabled and "Same Team: ON" or "Same Team: OFF"
+	randomTypeButton.Text = randomTypeClose and "Random Type: Close" or "Random Type: Full"
+end
+
 -- Update player list dropdown
 local function updatePlayerList()
 	dropdownFrame:ClearAllChildren()
@@ -363,15 +372,6 @@ local function attachBox(target)
 
 		targetBoxBillboard = billboard
 	end
-end
-
--- Update UI buttons text for toggles
-local function updateButtonsText()
-	moveButton.Text = moving and "Move: ON" or "Move: OFF"
-	camButton.Text = camLock and "Cam Lock: ON" or "Cam Lock: OFF"
-	randomButton.Text = randomMode and "Random: ON" or "Random: OFF"
-	sameTeamButton.Text = sameTeamEnabled and "Same Team: ON" or "Same Team: OFF"
-	randomTypeButton.Text = randomTypeClose and "Random Type: Close" or "Random Type: Full"
 end
 
 updatePlayerList()
