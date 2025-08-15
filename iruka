@@ -341,16 +341,17 @@ local function teleportTo(position)
 	local distance = (position - followPlatform.Position).Magnitude
 	local time = distance / MOVE_SPEED
 
-	currentTween = TweenService:Create(followPlatform, TweenInfo.new(time, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Position = position})
+	local targetPos = Vector3.new(position.X, followPlatform.Position.Y, position.Z)
+	currentTween = TweenService:Create(followPlatform, TweenInfo.new(time, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Position = targetPos})
 
+	
 	followConnection = RunService.RenderStepped:Connect(function()
 		if followPlatform and followPlatform.Parent and hrp.Parent then
-			hrp.CFrame = CFrame.new(
-				followPlatform.Position + Vector3.new(0, 2.5, 0),
-				followPlatform.Position + followPlatform.CFrame.LookVector
-			)
+			local newPos = Vector3.new(followPlatform.Position.X, hrp.Position.Y, followPlatform.Position.Z)
+			hrp.CFrame = CFrame.new(newPos, position)
 		end
 	end)
+
 
 	currentTween:Play()
 	currentTween.Completed:Connect(function()
