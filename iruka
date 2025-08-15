@@ -126,6 +126,29 @@ local buttonLayout = Instance.new("UIListLayout", buttonFrame)
 buttonLayout.SortOrder = Enum.SortOrder.LayoutOrder
 buttonLayout.Padding = UDim.new(0, 4)
 
+-- 速度入力用TextBox
+local speedLabel = Instance.new("TextLabel", contentFrame)
+speedLabel.Size = UDim2.new(0, 80, 0, 30)
+speedLabel.Position = UDim2.new(0, 10, 0, 170)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Speed:"
+speedLabel.TextColor3 = Color3.new(1, 1, 1)
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextSize = 14
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local speedBox = Instance.new("TextBox", contentFrame)
+speedBox.Size = UDim2.new(0, 80, 0, 30)
+speedBox.Position = UDim2.new(0, 60, 0, 170)
+speedBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+speedBox.TextColor3 = Color3.new(1, 1, 1)
+speedBox.Text = tostring(MOVE_SPEED)
+speedBox.Font = Enum.Font.Gotham
+speedBox.TextSize = 14
+speedBox.ClearTextOnFocus = false
+speedBox.TextEditable = true
+
+
 -- Button creator
 local function makeButton(text, color)
 	local btn = Instance.new("TextButton")
@@ -157,6 +180,17 @@ local randomMode = false
 local sameTeamEnabled = false
 local randomTypeClose = true
 local minimized = false
+
+speedBox.FocusLost:Connect(function(enterPressed)
+	local newSpeed = tonumber(speedBox.Text)
+	if newSpeed and newSpeed > 0 then
+		MOVE_SPEED = newSpeed
+		speedBox.Text = tostring(MOVE_SPEED)
+	else
+		speedBox.Text = tostring(MOVE_SPEED) -- 無効入力なら元の値に戻す
+	end
+end)
+
 
 -- Update UI buttons text for toggles
 local function updateButtonsText()
