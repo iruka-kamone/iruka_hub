@@ -357,7 +357,7 @@ local function pickRandomTarget()
 				local targetHrp = plr.Character:FindFirstChild("HumanoidRootPart")
 				if myHrp and targetHrp then
 					local direction = targetHrp.Position - myHrp.Position
-					local rayParams = RaycastParams.new()
+					local rayResult = workspace:Raycast(myHrp.Position, direction.Unit * direction.Magnitude, rayParams)
 					rayParams.FilterType = Enum.RaycastFilterType.Blacklist
 					rayParams.FilterDescendantsInstances = {player.Character, plr.Character}
 					local rayResult = workspace:Raycast(myHrp.Position, direction, rayParams)
