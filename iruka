@@ -1,4 +1,3 @@
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -6,6 +5,7 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local MOVE_SPEED = 300
+local camLockPart = "Head"
 
 -- 追尾用透明パーツ
 local followPlatform = nil
@@ -40,25 +40,45 @@ local function destroyFollowPlatform()
 	end
 end
 
--- GUI作成
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local MOVE_SPEED = 300
+local camLockPart = "Head"
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local MOVE_SPEED = 300
+local camLockPart = "Head"
+
+-- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FollowGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
+-- メインフレーム
 local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 360, 0, 270)
+mainFrame.Size = UDim2.new(0, 450, 0, 300)
 mainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-mainFrame.BackgroundTransparency = 0.4
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BackgroundTransparency = 0.3 
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
 mainFrame.Active = true
 mainFrame.Draggable = true
 
+-- タイトルバー
 local titleBar = Instance.new("Frame", mainFrame)
-titleBar.Size = UDim2.new(1, 0, 0, 30)
-titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+titleBar.Size = UDim2.new(1, 0, 0, 35)
+titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 
 local titleLabel = Instance.new("TextLabel", titleBar)
 titleLabel.Size = UDim2.new(1, -80, 1, 0)
@@ -67,12 +87,12 @@ titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "Iruka Hub"
 titleLabel.TextColor3 = Color3.new(1, 1, 1)
 titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 18
+titleLabel.TextSize = 20
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 local minButton = Instance.new("TextButton", titleBar)
 minButton.Size = UDim2.new(0, 35, 0, 25)
-minButton.Position = UDim2.new(1, -75, 0, 2)
+minButton.Position = UDim2.new(1, -75, 0, 5)
 minButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 minButton.TextColor3 = Color3.new(1, 1, 1)
 minButton.Text = "_"
@@ -81,31 +101,32 @@ minButton.TextSize = 22
 
 local closeButton = Instance.new("TextButton", titleBar)
 closeButton.Size = UDim2.new(0, 35, 0, 25)
-closeButton.Position = UDim2.new(1, -35, 0, 2)
+closeButton.Position = UDim2.new(1, -35, 0, 5)
 closeButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 closeButton.TextColor3 = Color3.new(1, 1, 1)
 closeButton.Text = "X"
 closeButton.Font = Enum.Font.GothamBold
 closeButton.TextSize = 22
 
-local contentFrame = Instance.new("Frame", mainFrame)
-contentFrame.Size = UDim2.new(1, 0, 1, -30)
-contentFrame.Position = UDim2.new(0, 0, 0, 30)
-contentFrame.BackgroundTransparency = 1
+-- 左列フレーム（Player選択 + Speed）
+local leftFrame = Instance.new("Frame", mainFrame)
+leftFrame.Size = UDim2.new(0, 180, 1, -35)
+leftFrame.Position = UDim2.new(0, 0, 0, 35)
+leftFrame.BackgroundTransparency = 1
 
--- Dropdown to select player
-local dropdown = Instance.new("TextButton", contentFrame)
+-- Player ドロップダウン
+local dropdown = Instance.new("TextButton", leftFrame)
 dropdown.Size = UDim2.new(0, 160, 0, 30)
 dropdown.Position = UDim2.new(0, 10, 0, 10)
 dropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 dropdown.TextColor3 = Color3.new(1, 1, 1)
 dropdown.Text = "Select Player"
-dropdown.Font = Enum.Font.Gotham
+dropdown.Font = Enum.Font.GothamBold
 dropdown.TextSize = 14
 
-local dropdownFrame = Instance.new("ScrollingFrame", contentFrame)
+local dropdownFrame = Instance.new("ScrollingFrame", leftFrame)
 dropdownFrame.Size = UDim2.new(0, 160, 0, 120)
-dropdownFrame.Position = UDim2.new(0, 10, 0, 40)
+dropdownFrame.Position = UDim2.new(0, 10, 0, 45)
 dropdownFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 dropdownFrame.Visible = false
 dropdownFrame.ClipsDescendants = true
@@ -116,58 +137,112 @@ local uiListLayout = Instance.new("UIListLayout", dropdownFrame)
 uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 uiListLayout.Padding = UDim.new(0, 4)
 
--- Buttons container on right
-local buttonFrame = Instance.new("Frame", contentFrame)
-buttonFrame.Size = UDim2.new(0, 160, 0, 180)
-buttonFrame.Position = UDim2.new(0, 190, 0, 10)
-buttonFrame.BackgroundTransparency = 1
-
-local buttonLayout = Instance.new("UIListLayout", buttonFrame)
-buttonLayout.SortOrder = Enum.SortOrder.LayoutOrder
-buttonLayout.Padding = UDim.new(0, 4)
-
--- 速度入力用TextBox
-local speedLabel = Instance.new("TextLabel", contentFrame)
+-- Speed入力
+local speedLabel = Instance.new("TextLabel", leftFrame)
 speedLabel.Size = UDim2.new(0, 80, 0, 30)
-speedLabel.Position = UDim2.new(0, 10, 0, 170)
+speedLabel.Position = UDim2.new(0, 10, 0, 180)
 speedLabel.BackgroundTransparency = 1
 speedLabel.Text = "Speed:"
 speedLabel.TextColor3 = Color3.new(1, 1, 1)
-speedLabel.Font = Enum.Font.Gotham
+speedLabel.Font = Enum.Font.GothamBold
 speedLabel.TextSize = 14
 speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-local speedBox = Instance.new("TextBox", contentFrame)
+local speedBox = Instance.new("TextBox", leftFrame)
 speedBox.Size = UDim2.new(0, 80, 0, 30)
-speedBox.Position = UDim2.new(0, 60, 0, 170)
+speedBox.Position = UDim2.new(0, 60, 0, 180)
 speedBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 speedBox.TextColor3 = Color3.new(1, 1, 1)
 speedBox.Text = tostring(MOVE_SPEED)
-speedBox.Font = Enum.Font.Gotham
+speedBox.Font = Enum.Font.GothamBold
 speedBox.TextSize = 14
 speedBox.ClearTextOnFocus = false
 speedBox.TextEditable = true
 
+-- 右列フレーム（スクロール可能ボタン群）
+local rightFrame = Instance.new("Frame", mainFrame)
+rightFrame.Size = UDim2.new(0, 250, 1, -35)
+rightFrame.Position = UDim2.new(0, 180, 0, 35)
+rightFrame.BackgroundTransparency = 1
 
--- Button creator
+local buttonScroll = Instance.new("ScrollingFrame", rightFrame)
+buttonScroll.Size = UDim2.new(1, 0, 1, 0)
+buttonScroll.BackgroundTransparency = 1
+buttonScroll.ScrollBarThickness = 6
+buttonScroll.ClipsDescendants = true
+
+local buttonLayout = Instance.new("UIListLayout", buttonScroll)
+buttonLayout.SortOrder = Enum.SortOrder.LayoutOrder
+buttonLayout.Padding = UDim.new(0, 6)
+
+-- ボタン作成関数
 local function makeButton(text, color)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, 0, 0, 30)
+	btn.Size = UDim2.new(1, 0, 0, 38)
 	btn.BackgroundColor3 = color
 	btn.TextColor3 = Color3.new(1, 1, 1)
 	btn.Text = text
-	btn.Font = Enum.Font.GothamSemibold
+	btn.Font = Enum.Font.GothamBold
 	btn.TextSize = 16
-	btn.Parent = buttonFrame
+	btn.Parent = buttonScroll
 	return btn
 end
 
+-- ボタン例
 local refreshButton = makeButton("Refresh", Color3.fromRGB(70, 70, 70))
 local moveButton = makeButton("Move: OFF", Color3.fromRGB(70, 70, 70))
 local camButton = makeButton("Cam Lock: OFF", Color3.fromRGB(90, 90, 90))
 local randomButton = makeButton("Random: OFF", Color3.fromRGB(110, 110, 110))
 local sameTeamButton = makeButton("Same Team: OFF", Color3.fromRGB(100, 100, 150))
 local randomTypeButton = makeButton("Random Type: Close", Color3.fromRGB(100, 150, 100))
+
+-- Look Part ドロップダウン
+local lookPartButton = makeButton("Look Part: Head", Color3.fromRGB(80, 80, 200))
+local lookPartDropdown = Instance.new("Frame")
+lookPartDropdown.Size = UDim2.new(1, 0, 0, 120)
+lookPartDropdown.Position = UDim2.new(0, 0, 0, 38)
+lookPartDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+lookPartDropdown.Visible = false
+lookPartDropdown.BorderSizePixel = 0
+lookPartDropdown.Parent = buttonScroll
+
+local lookListLayout = Instance.new("UIListLayout", lookPartDropdown)
+lookListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+lookListLayout.Padding = UDim.new(0, 4)
+
+-- 選択肢
+local function makeLookOption(name)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, 0, 0, 30)
+	btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Text = name
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 14
+	btn.Parent = lookPartDropdown
+	btn.MouseButton1Click:Connect(function()
+		lookPartButton.Text = "Look Part: " .. name
+		lookPartDropdown.Visible = false
+		lookPart = name
+	end)
+end
+
+makeLookOption("Head")
+makeLookOption("Torso")
+makeLookOption("Legs")
+
+lookPartButton.MouseButton1Click:Connect(function()
+	lookPartDropdown.Visible = not lookPartDropdown.Visible
+end)
+
+-- スクロール範囲自動調整
+buttonLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	buttonScroll.CanvasSize = UDim2.new(0, 0, 0, buttonLayout.AbsoluteContentSize.Y + 20)
+end)
+
+
+-- CanvasSize自動更新
+buttonScroll.CanvasSize = UDim2.new(0, 0, 0, buttonLayout.AbsoluteContentSize.Y + 40)
 
 -- State variables
 local selectedTarget = nil
@@ -216,7 +291,7 @@ local function updatePlayerList()
 	noneBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 	noneBtn.TextColor3 = Color3.new(1, 1, 1)
 	noneBtn.Text = "None"
-	noneBtn.Font = Enum.Font.GothamSemibold
+	noneBtn.Font = Enum.Font.GothamBold
 	noneBtn.TextSize = 16
 	noneBtn.MouseButton1Click:Connect(function()
 		selectedTarget = nil
@@ -233,7 +308,7 @@ local function updatePlayerList()
 			btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 			btn.TextColor3 = Color3.new(1, 1, 1)
 			btn.Text = plr.Name
-			btn.Font = Enum.Font.GothamSemibold
+			btn.Font = Enum.Font.GothamBold
 			btn.TextSize = 16
 
 			btn.MouseButton1Click:Connect(function()
@@ -397,10 +472,21 @@ end
 
 -- CamLock処理
 RunService.Heartbeat:Connect(function()
-	if camLock and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
-		local hrp = selectedTarget.Character.HumanoidRootPart
+	if camLock and selectedTarget and selectedTarget.Character then
 		local cam = workspace.CurrentCamera
-		cam.CFrame = CFrame.new(cam.CFrame.Position, hrp.Position)
+		local lookPos = nil
+
+		if camLockPart == "Head" and selectedTarget.Character:FindFirstChild("Head") then
+			lookPos = selectedTarget.Character.Head.Position
+		elseif camLockPart == "Torso" and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
+			lookPos = selectedTarget.Character.HumanoidRootPart.Position
+		elseif camLockPart == "Legs" and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
+			lookPos = selectedTarget.Character.HumanoidRootPart.Position - Vector3.new(0, 3, 0)
+		end
+
+		if lookPos then
+			cam.CFrame = CFrame.new(cam.CFrame.Position, lookPos)
+		end
 	end
 end)
 
