@@ -12,6 +12,8 @@ local camLockPart = "Head"
 local followPlatform = nil
 local currentTween = nil
 local followConnection = nil
+local ignoreWalls = true
+
 
 local function createFollowPlatform(position)
 	if followPlatform then
@@ -239,9 +241,14 @@ buttonLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	buttonScroll.CanvasSize = UDim2.new(0, 0, 0, buttonLayout.AbsoluteContentSize.Y + 20)
 end)
 
-
 -- CanvasSize自動更新
 buttonScroll.CanvasSize = UDim2.new(0, 0, 0, buttonLayout.AbsoluteContentSize.Y + 40)
+
+local wallToggleButton = makeButton("Ignore Walls: ON", Color3.fromRGB(120, 120, 120))
+wallToggleButton.MouseButton1Click:Connect(function()
+	ignoreWalls = not ignoreWalls
+	wallToggleButton.Text = "comming sonn... " .. (ignoreWalls and "ON" or "OFF")
+end)
 
 
 local toggleButton = Instance.new("ImageButton")
