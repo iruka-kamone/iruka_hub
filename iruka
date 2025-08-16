@@ -7,7 +7,6 @@ local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local MOVE_SPEED = 300
 local camLockPart = "Head"
-local ignoreWalls = true
 
 -- 追尾用透明パーツ
 local followPlatform = nil
@@ -240,14 +239,9 @@ buttonLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	buttonScroll.CanvasSize = UDim2.new(0, 0, 0, buttonLayout.AbsoluteContentSize.Y + 20)
 end)
 
+
 -- CanvasSize自動更新
 buttonScroll.CanvasSize = UDim2.new(0, 0, 0, buttonLayout.AbsoluteContentSize.Y + 40)
-
-local wallToggleButton = makeButton("Ignore Walls: ON", Color3.fromRGB(120, 120, 120))
-wallToggleButton.MouseButton1Click:Connect(function()
-	ignoreWalls = not ignoreWalls
-	wallToggleButton.Text = "Ignore Walls: " .. (ignoreWalls and "ON" or "OFF")
-end)
 
 
 local toggleButton = Instance.new("ImageButton")
@@ -345,40 +339,23 @@ local function updatePlayerList()
 	dropdownFrame.CanvasSize = UDim2.new(0, 0, 0, count * 34)
 end
 
+-- Pick random target based on settings
 local function pickRandomTarget()
 	local candidates = {}
 	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
-			local valid = true
-
-			-- 壁越し判定
-			if not ignoreWalls then  -- 壁を無視しない場合のみ判定
-				local myHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-				local targetHrp = plr.Character:FindFirstChild("HumanoidRootPart")
-				if myHrp and targetHrp then
-					local direction = targetHrp.Position - myHrp.Position
-					local rayResult = workspace:Raycast(myHrp.Position, direction.Unit * direction.Magnitude, rayParams)
-					rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-					rayParams.FilterDescendantsInstances = {player.Character, plr.Character}
-					local rayResult = workspace:Raycast(myHrp.Position, direction, rayParams)
-					if rayResult then
-						valid = false -- 壁がある場合は除外
-					end
+		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
+			if not sameTeamEnabled then
+				if player.Team and plr.Team == player.Team then
+					-- Skip same team
+				else
+					table.insert(candidates, plr)
 				end
-			end
-
-			-- チーム判定
-			if valid and not sameTeamEnabled and player.Team and plr.Team == player.Team then
-				valid = false
-			end
-
-			if valid then
+			else
 				table.insert(candidates, plr)
 			end
 		end
 	end
 
-	-- ターゲット選択
 	if #candidates == 0 then
 		selectedTarget = nil
 		dropdown.Text = "Select Player"
@@ -386,16 +363,20 @@ local function pickRandomTarget()
 	end
 
 	if randomTypeClose then
-		table.sort(candidates, function(a, b)
-			local myPos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position or Vector3.new()
+		-- Close mode: pick closest target, update every 0.1s
+		table.sort(candidates, function(a,b)
+			if not (a.Character and a.Character:FindFirstChild("HumanoidRootPart")) then return false end
+			if not (b.Character and b.Character:FindFirstChild("HumanoidRootPart")) then return true end
 			local aPos = a.Character.HumanoidRootPart.Position
 			local bPos = b.Character.HumanoidRootPart.Position
+			local myPos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position or Vector3.new()
 			return (aPos - myPos).Magnitude < (bPos - myPos).Magnitude
 		end)
 		selectedTarget = candidates[1]
 	else
+		-- Full mode: pick random target and stay until dead
 		if selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("Humanoid") and selectedTarget.Character.Humanoid.Health > 0 then
-			return
+			return -- keep current target alive in full mode
 		end
 		selectedTarget = candidates[math.random(1,#candidates)]
 	end
@@ -404,7 +385,6 @@ local function pickRandomTarget()
 		dropdown.Text = "Target: " .. selectedTarget.Name
 	end
 end
-
 
 updatePlayerList()
 updateButtonsText()
