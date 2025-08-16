@@ -90,15 +90,6 @@ titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 20
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-local minButton = Instance.new("TextButton", titleBar)
-minButton.Size = UDim2.new(0, 35, 0, 25)
-minButton.Position = UDim2.new(1, -75, 0, 5)
-minButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-minButton.TextColor3 = Color3.new(1, 1, 1)
-minButton.Text = "_"
-minButton.Font = Enum.Font.GothamBold
-minButton.TextSize = 22
-
 local closeButton = Instance.new("TextButton", titleBar)
 closeButton.Size = UDim2.new(0, 35, 0, 25)
 closeButton.Position = UDim2.new(1, -35, 0, 5)
@@ -244,6 +235,16 @@ end)
 -- CanvasSize自動更新
 buttonScroll.CanvasSize = UDim2.new(0, 0, 0, buttonLayout.AbsoluteContentSize.Y + 40)
 
+
+local toggleButton = Instance.new("ImageButton")
+toggleButton.Size = UDim2.new(0, 50, 0, 50)  -- 小さい正方形
+toggleButton.Position = UDim2.new(0, 10, 0, 10) -- 初期位置
+toggleButton.BackgroundTransparency = 1
+toggleButton.Image = "rbxassetid://125855645824065"  -- 画像ID
+toggleButton.Parent = screenGui
+toggleButton.Active = true
+toggleButton.Draggable = true  -- ドラッグ可能
+
 -- State variables
 local selectedTarget = nil
 local targetBillboard = nil
@@ -266,6 +267,9 @@ speedBox.FocusLost:Connect(function(enterPressed)
 	end
 end)
 
+toggleButton.MouseButton1Click:Connect(function()
+	mainFrame.Visible = not mainFrame.Visible
+end)
 
 -- Update UI buttons text for toggles
 local function updateButtonsText()
@@ -411,21 +415,55 @@ randomTypeButton.MouseButton1Click:Connect(function()
 	updateButtonsText()
 end)
 
-minButton.MouseButton1Click:Connect(function()
-	minimized = not minimized
-	if minimized then
-		dropdownFrame.Visible = false
-		TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 360, 0, 30)}):Play()
-		minButton.Text = "▢"
-	else
-		TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 360, 0, 270)}):Play()
-		minButton.Text = "_"
-	end
-end)
-
 closeButton.MouseButton1Click:Connect(function()
-	screenGui:Destroy()
-	destroyFollowPlatform()
+	-- 確認ダイアログ作成
+	local confirmFrame = Instance.new("Frame")
+	confirmFrame.Size = UDim2.new(0, 250, 0, 120)
+	confirmFrame.Position = UDim2.new(0.5, -125, 0.5, -60)
+	confirmFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	confirmFrame.BorderSizePixel = 0
+	confirmFrame.Parent = screenGui
+	confirmFrame.ZIndex = 10
+
+	local label = Instance.new("TextLabel", confirmFrame)
+	label.Size = UDim2.new(1, -20, 0, 50)
+	label.Position = UDim2.new(0, 10, 0, 10)
+	label.BackgroundTransparency = 1
+	label.Text = "本当に閉じますか？"
+	label.TextColor3 = Color3.new(1,1,1)
+	label.Font = Enum.Font.GothamBold
+	label.TextSize = 18
+	label.TextWrapped = true
+	label.ZIndex =11
+
+	local yesButton = Instance.new("TextButton", confirmFrame)
+	yesButton.Size = UDim2.new(0.4, 0, 0, 40)
+	yesButton.Position = UDim2.new(0.05, 0, 0.6, 0)
+	yesButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+	yesButton.TextColor3 = Color3.new(1,1,1)
+	yesButton.Text = "Yes"
+	yesButton.Font = Enum.Font.GothamBold
+	yesButton.TextSize = 16
+	yesButton.ZIndex = 11
+
+	local noButton = Instance.new("TextButton", confirmFrame)
+	noButton.Size = UDim2.new(0.4, 0, 0, 40)
+	noButton.Position = UDim2.new(0.55, 0, 0.6, 0)
+	noButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+	noButton.TextColor3 = Color3.new(1,1,1)
+	noButton.Text = "No"
+	noButton.Font = Enum.Font.GothamBold
+	noButton.TextSize = 16
+	noButton.ZIndex =11
+
+	yesButton.MouseButton1Click:Connect(function()
+		screenGui:Destroy()
+		destroyFollowPlatform()
+	end)
+
+	noButton.MouseButton1Click:Connect(function()
+		confirmFrame:Destroy()
+	end)
 end)
 
 -- Tweenでなめらか追尾処理
