@@ -1,3 +1,4 @@
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -6,6 +7,7 @@ local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local MOVE_SPEED = 300
 local camLockPart = "Head"
+local ignoreWalls = true
 
 -- 追尾用透明パーツ
 local followPlatform = nil
@@ -238,9 +240,14 @@ buttonLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	buttonScroll.CanvasSize = UDim2.new(0, 0, 0, buttonLayout.AbsoluteContentSize.Y + 20)
 end)
 
-
 -- CanvasSize自動更新
 buttonScroll.CanvasSize = UDim2.new(0, 0, 0, buttonLayout.AbsoluteContentSize.Y + 40)
+
+local wallToggleButton = makeButton("Ignore Walls: ON", Color3.fromRGB(120, 120, 120))
+wallToggleButton.MouseButton1Click:Connect(function()
+	ignoreWalls = not ignoreWalls
+	wallToggleButton.Text = "Ignore Walls: " .. (ignoreWalls and "ON" or "OFF")
+end)
 
 
 local toggleButton = Instance.new("ImageButton")
@@ -383,6 +390,43 @@ local function pickRandomTarget()
 	if selectedTarget then
 		dropdown.Text = "Target: " .. selectedTarget.Name
 	end
+	
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
+			local valid = true
+
+			-- 壁越し判定
+			if ignoreWalls then
+				local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+				local myHrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+				if hrp and myHrp then
+					local rayParams = RaycastParams.new()
+					rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+					rayParams.FilterDescendantsInstances = {player.Character, plr.Character} -- 自分と対象プレイヤーは除外
+
+					local direction = (hrp.Position - myHrp.Position)
+					local rayResult = workspace:Raycast(myHrp.Position, direction, rayParams)
+					if rayResult then
+						valid = false -- 途中に何か障害物があれば除外
+					end
+				end
+			end
+
+			if valid then
+				if not sameTeamEnabled then
+					if player.Team and plr.Team == player.Team then
+						-- 同チームなら除外
+					else
+						table.insert(candidates, plr)
+					end
+				else
+					table.insert(candidates, plr)
+				end
+			end
+		end
+	end
+
+	
 end
 
 updatePlayerList()
