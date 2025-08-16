@@ -223,7 +223,7 @@ local function makeLookOption(name)
 	btn.MouseButton1Click:Connect(function()
 		lookPartButton.Text = "Look Part: " .. name
 		lookPartDropdown.Visible = false
-		lookPart = name
+		camLockPart = name
 	end)
 end
 
