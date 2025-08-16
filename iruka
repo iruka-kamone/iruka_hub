@@ -74,11 +74,15 @@ mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
 mainFrame.Active = true
 mainFrame.Draggable = true
+local mainCorner =Instance.new("UICorner",mainFrame)
+mainCorner.CornerRadius = UDim.new(0,20)
 
 -- タイトルバー
 local titleBar = Instance.new("Frame", mainFrame)
 titleBar.Size = UDim2.new(1, 0, 0, 35)
 titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+local titleCorner =Instance.new("UICorner",titleBar)
+titleCorner.CornerRadius = UDim.new(0,20)
 
 local titleLabel = Instance.new("TextLabel", titleBar)
 titleLabel.Size = UDim2.new(1, -80, 1, 0)
@@ -91,13 +95,16 @@ titleLabel.TextSize = 20
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 local closeButton = Instance.new("TextButton", titleBar)
-closeButton.Size = UDim2.new(0, 35, 0, 25)
-closeButton.Position = UDim2.new(1, -35, 0, 5)
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -32, 0, 2)
 closeButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 closeButton.TextColor3 = Color3.new(1, 1, 1)
 closeButton.Text = "X"
 closeButton.Font = Enum.Font.GothamBold
 closeButton.TextSize = 22
+local closeCorner =Instance.new("UICorner",closeButton)
+closeCorner.CornerRadius = UDim.new(1,0)
+
 
 -- 左列フレーム（Player選択 + Speed）
 local leftFrame = Instance.new("Frame", mainFrame)
@@ -238,12 +245,15 @@ buttonScroll.CanvasSize = UDim2.new(0, 0, 0, buttonLayout.AbsoluteContentSize.Y 
 
 local toggleButton = Instance.new("ImageButton")
 toggleButton.Size = UDim2.new(0, 50, 0, 50)  -- 小さい正方形
-toggleButton.Position = UDim2.new(0, 10, 0, 10) -- 初期位置
+toggleButton.Position = UDim2.new(0, 100, 0, 100) -- 初期位置
 toggleButton.BackgroundTransparency = 1
 toggleButton.Image = "rbxassetid://125855645824065"  -- 画像ID
 toggleButton.Parent = screenGui
 toggleButton.Active = true
 toggleButton.Draggable = true  -- ドラッグ可能
+local toggleCorner =Instance.new("UICorner",toggleButton)
+toggleCorner.CornerRadius = UDim.new(0.25,0)
+
 
 -- State variables
 local selectedTarget = nil
@@ -429,7 +439,7 @@ closeButton.MouseButton1Click:Connect(function()
 	label.Size = UDim2.new(1, -20, 0, 50)
 	label.Position = UDim2.new(0, 10, 0, 10)
 	label.BackgroundTransparency = 1
-	label.Text = "本当に閉じますか？"
+	label.Text = "Really Close?"
 	label.TextColor3 = Color3.new(1,1,1)
 	label.Font = Enum.Font.GothamBold
 	label.TextSize = 18
