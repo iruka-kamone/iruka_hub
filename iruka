@@ -581,20 +581,35 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
--- Main loop
+local lastDistance = nil  -- 前フレームの距離を記録
+
 RunService.Heartbeat:Connect(function()
 	if randomMode then
 		if randomTypeClose then
 			pickRandomTarget()
-		else
-			-- full random target remains until dead, handled in pickRandomTarget()
 		end
 	end
 
 	if moving and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
-		local targetPos = selectedTarget.Character.HumanoidRootPart.Position - Vector3.new(0, 3, 0)
-		teleportTo(targetPos)
+		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			local targetPos = selectedTarget.Character.HumanoidRootPart.Position - Vector3.new(0, 3, 0)
+			local distance = (hrp.Position - targetPos).Magnitude
+
+			if lastDistance and (distance - lastDistance) > 1000 then
+				-- 前回より一気に50以上距離が離れたら追尾やめる
+				destroyFollowPlatform()
+				moving = false
+				updateButtonsText()
+				lastDistance = nil
+				return
+			end
+
+			teleportTo(targetPos)
+			lastDistance = distance
+		end
 	else
 		destroyFollowPlatform()
+		lastDistance = nil
 	end
 end)
