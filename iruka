@@ -644,7 +644,7 @@ RunService.Heartbeat:Connect(function()
 				end
 
 				-- 💡 1000以上離れたときも島チェック
-				if lastDistance and (distance - lastDistance) > 1000 then
+				if lastDistance and (distance - lastDistance) > 2000 then
 					if island and islandDist < (hrp.Position - targetPos).Magnitude then
 						-- 島が有効 → 島にTPして追尾継続
 						hrp.CFrame = CFrame.new(island)
