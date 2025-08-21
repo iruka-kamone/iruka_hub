@@ -15,14 +15,13 @@ local followConnection = nil
 local ignoreWalls = true
 local bloxFruitsMode = false
 
+local BLOXFRUITS_OFFSET = Vector3.new(-2, -1, 0) -- 補正量（要調整）
 local islands = {
 	Vector3.new(-287, 305.9, 597.6),
 	Vector3.new(2284.9, 14.9, 905.8),
 	Vector3.new(923.2, 124.8, 32852.8),
 	Vector3.new(-6508.6, 82, -132.8),
 }
-
-
 
 local function createFollowPlatform(position)
 	if followPlatform then
@@ -605,7 +604,11 @@ RunService.Heartbeat:Connect(function()
 		elseif camLockPart == "Legs" and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
 			lookPos = selectedTarget.Character.HumanoidRootPart.Position - Vector3.new(0, 3, 0)
 		end
-
+		
+		if lookPos and bloxFruitsMode then
+			lookPos = lookPos + BLOXFRUITS_OFFSET
+		end
+		
 		if lookPos then
 			cam.CFrame = CFrame.new(cam.CFrame.Position, lookPos)
 		end
@@ -644,7 +647,7 @@ RunService.Heartbeat:Connect(function()
 				end
 
 				-- 💡 1000以上離れたときも島チェック
-				if lastDistance and (distance - lastDistance) > 2000 then
+				if lastDistance and (distance - lastDistance) > 1000 then
 					if island and islandDist < (hrp.Position - targetPos).Magnitude then
 						-- 島が有効 → 島にTPして追尾継続
 						hrp.CFrame = CFrame.new(island)
