@@ -337,9 +337,10 @@ local function createSwitch(parent, text, default, callback)
 			handle:TweenPosition(UDim2.new(0, 2, 0.5, -10), "Out", "Quad", 0.2, true)
 		end
 	end
-
+	
 	switchBase.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if input.UserInputType == Enum.UserInputType.MouseButton1 
+			or input.UserInputType == Enum.UserInputType.Touch then
 			state = not state
 			updateUI()
 			if callback then callback(state) end
