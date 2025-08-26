@@ -1,4 +1,3 @@
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -15,7 +14,13 @@ local followConnection = nil
 local ignoreWalls = true
 local bloxFruitsMode = false
 
-local BLOXFRUITS_OFFSET = Vector3.new(-2, -1, 0) -- 補正量（要調整）
+local selectedTarget = nil
+local moving = false
+local camLock = false
+local randomMode = false
+local sameTeamEnabled = false
+local randomTypeClose = true
+
 local islands = {
 	Vector3.new(-287, 305.9, 597.6),
 	Vector3.new(2284.9, 14.9, 905.8),
@@ -51,24 +56,6 @@ local function destroyFollowPlatform()
 	end
 end
 
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-
-local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
-local MOVE_SPEED = 300
-local camLockPart = "Head"
-
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-
-local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
-local MOVE_SPEED = 300
-local camLockPart = "Head"
-
 -- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FollowGui"
@@ -80,20 +67,20 @@ local mainFrame = Instance.new("Frame", screenGui)
 mainFrame.Size = UDim2.new(0, 450, 0, 300)
 mainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-mainFrame.BackgroundTransparency = 0.3 
+mainFrame.BackgroundTransparency = 0.3
 mainFrame.BorderSizePixel = 0
 mainFrame.ClipsDescendants = true
 mainFrame.Active = true
 mainFrame.Draggable = true
-local mainCorner =Instance.new("UICorner",mainFrame)
-mainCorner.CornerRadius = UDim.new(0,20)
+local mainCorner = Instance.new("UICorner", mainFrame)
+mainCorner.CornerRadius = UDim.new(0, 20)
 
 -- タイトルバー
 local titleBar = Instance.new("Frame", mainFrame)
 titleBar.Size = UDim2.new(1, 0, 0, 35)
 titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-local titleCorner =Instance.new("UICorner",titleBar)
-titleCorner.CornerRadius = UDim.new(0,20)
+local titleCorner = Instance.new("UICorner", titleBar)
+titleCorner.CornerRadius = UDim.new(0, 20)
 
 local titleLabel = Instance.new("TextLabel", titleBar)
 titleLabel.Size = UDim2.new(1, -80, 1, 0)
@@ -113,9 +100,24 @@ closeButton.TextColor3 = Color3.new(1, 1, 1)
 closeButton.Text = "X"
 closeButton.Font = Enum.Font.GothamBold
 closeButton.TextSize = 22
-local closeCorner =Instance.new("UICorner",closeButton)
-closeCorner.CornerRadius = UDim.new(1,0)
+local closeCorner = Instance.new("UICorner", closeButton)
+closeCorner.CornerRadius = UDim.new(1, 0)
 
+-- 右列フレーム（スクロール可能ボタン群 + スイッチ群）
+local rightFrame = Instance.new("Frame", mainFrame)
+rightFrame.Size = UDim2.new(0, 250, 1, -35)
+rightFrame.Position = UDim2.new(0, 180, 0, 35)
+rightFrame.BackgroundTransparency = 1
+
+local buttonScroll = Instance.new("ScrollingFrame", rightFrame)
+buttonScroll.Size = UDim2.new(1, 0, 1, 0)
+buttonScroll.BackgroundTransparency = 1
+buttonScroll.ScrollBarThickness = 6
+buttonScroll.ClipsDescendants = true
+
+local buttonLayout = Instance.new("UIListLayout", buttonScroll)
+buttonLayout.SortOrder = Enum.SortOrder.LayoutOrder
+buttonLayout.Padding = UDim.new(0, 6)
 
 -- 左列フレーム（Player選択 + Speed）
 local leftFrame = Instance.new("Frame", mainFrame)
@@ -135,7 +137,7 @@ dropdown.TextSize = 14
 
 local dropdownFrame = Instance.new("ScrollingFrame", leftFrame)
 dropdownFrame.Size = UDim2.new(0, 160, 0, 120)
-dropdownFrame.Position = UDim2.new(0, 10, 0, 45)
+dropdownFrame.Position = UDim2.new(0, 10, 0, 40)
 dropdownFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 dropdownFrame.Visible = false
 dropdownFrame.ClipsDescendants = true
@@ -145,6 +147,57 @@ dropdownFrame.ScrollBarThickness = 6
 local uiListLayout = Instance.new("UIListLayout", dropdownFrame)
 uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 uiListLayout.Padding = UDim.new(0, 4)
+
+-- Home/ESP タブ
+local tabFrame = Instance.new("Frame", titleBar)
+tabFrame.Position = UDim2.new(0, 120, 0, 2)
+tabFrame.Size = UDim2.new(0, 80, 1, -4)
+tabFrame.BackgroundTransparency = 1
+
+local homeButton = Instance.new("TextButton", tabFrame)
+homeButton.Size = UDim2.new(0.5, -2, 1, -4)
+homeButton.Position = UDim2.new(0, 0, 0, 2)
+homeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+homeButton.TextColor3 = Color3.new(1, 1, 1)
+homeButton.Text = "Home"
+homeButton.Font = Enum.Font.GothamBold
+homeButton.TextSize = 14
+local homeCorner = Instance.new("UICorner", homeButton)
+homeCorner.CornerRadius = UDim.new(0, 6)
+
+local espButton = Instance.new("TextButton", tabFrame)
+espButton.Size = UDim2.new(0.5, -2, 1, -4)
+espButton.Position = UDim2.new(0.5, 2, 0, 2)
+espButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+espButton.TextColor3 = Color3.new(1, 1, 1)
+espButton.Text = "ESP"
+espButton.Font = Enum.Font.GothamBold
+espButton.TextSize = 14
+local espCorner = Instance.new("UICorner", espButton)
+espCorner.CornerRadius = UDim.new(0, 6)
+
+-- ページ切り替え関数
+local currentPage = "Home"
+local function switchPage(page)
+	currentPage = page
+	if page == "Home" then
+		leftFrame.Visible = true
+		rightFrame.Visible = true
+	elseif page == "ESP" then
+		leftFrame.Visible = false
+		rightFrame.Visible = false
+	end
+end
+
+homeButton.MouseButton1Click:Connect(function()
+	switchPage("Home")
+end)
+
+espButton.MouseButton1Click:Connect(function()
+	switchPage("ESP")
+end)
+
+switchPage("Home")
 
 -- Speed入力
 local speedLabel = Instance.new("TextLabel", leftFrame)
@@ -168,183 +221,208 @@ speedBox.TextSize = 14
 speedBox.ClearTextOnFocus = false
 speedBox.TextEditable = true
 
--- 右列フレーム（スクロール可能ボタン群）
-local rightFrame = Instance.new("Frame", mainFrame)
-rightFrame.Size = UDim2.new(0, 250, 1, -35)
-rightFrame.Position = UDim2.new(0, 180, 0, 35)
-rightFrame.BackgroundTransparency = 1
+speedBox.FocusLost:Connect(function()
+	local newSpeed = tonumber(speedBox.Text)
+	if newSpeed and newSpeed > 0 then
+		MOVE_SPEED = newSpeed
+		speedBox.Text = tostring(MOVE_SPEED)
+	else
+		speedBox.Text = tostring(MOVE_SPEED)
+	end
+end)
 
-local buttonScroll = Instance.new("ScrollingFrame", rightFrame)
-buttonScroll.Size = UDim2.new(1, 0, 1, 0)
-buttonScroll.BackgroundTransparency = 1
-buttonScroll.ScrollBarThickness = 6
-buttonScroll.ClipsDescendants = true
+-- Toggle GUI
+local toggleButton = Instance.new("ImageButton")
+toggleButton.Size = UDim2.new(0, 50, 0, 50)
+toggleButton.Position = UDim2.new(0, 100, 0, 100)
+toggleButton.BackgroundTransparency = 1
+toggleButton.Image = "rbxassetid://125855645824065"
+toggleButton.Parent = screenGui
+toggleButton.Active = true
+toggleButton.Draggable = true
+local toggleCorner = Instance.new("UICorner", toggleButton)
+toggleCorner.CornerRadius = UDim.new(0.25, 0)
 
-local buttonLayout = Instance.new("UIListLayout", buttonScroll)
-buttonLayout.SortOrder = Enum.SortOrder.LayoutOrder
-buttonLayout.Padding = UDim.new(0, 6)
+toggleButton.MouseButton1Click:Connect(function()
+	mainFrame.Visible = not mainFrame.Visible
+end)
 
--- ボタン作成関数
-local function makeButton(text, color)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, 0, 0, 38)
-	btn.BackgroundColor3 = color
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Text = text
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 16
-	btn.Parent = buttonScroll
-	return btn
+local function updatePlayerList()
+	-- 既存のリストをクリア
+	for _, child in ipairs(dropdownFrame:GetChildren()) do
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
+	end
+
+	-- 全プレイヤーを追加
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player then
+			local btn = Instance.new("TextButton")
+			btn.Size = UDim2.new(1, -10, 0, 30)
+			btn.Position = UDim2.new(0, 5, 0, 0)
+			btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+			btn.TextColor3 = Color3.new(1, 1, 1)
+			btn.Text = plr.Name
+			btn.Font = Enum.Font.GothamBold
+			btn.TextSize = 14
+			btn.AutoButtonColor = true
+			btn.Parent = dropdownFrame
+
+			btn.MouseButton1Click:Connect(function()
+				selectedTarget = plr
+				dropdown.Text = "Target: " .. plr.Name
+				dropdownFrame.Visible = false
+			end)
+		end
+	end
+
+	-- UIListLayoutで自動整列
+	local layout = dropdownFrame:FindFirstChildOfClass("UIListLayout")
+	if not layout then
+		layout = Instance.new("UIListLayout")
+		layout.Parent = dropdownFrame
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Padding = UDim.new(0, 4)
+	end
+
+	-- CanvasSizeを自動調整
+	dropdownFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
+	dropdownFrame.Visible = false  -- ← ここを追加
 end
 
--- ボタン例
-local refreshButton = makeButton("Refresh", Color3.fromRGB(70, 70, 70))
-local moveButton = makeButton("Move: OFF", Color3.fromRGB(70, 70, 70))
-local camButton = makeButton("Cam Lock: OFF", Color3.fromRGB(90, 90, 90))
-local randomButton = makeButton("Random: OFF", Color3.fromRGB(110, 110, 110))
-local sameTeamButton = makeButton("Same Team: OFF", Color3.fromRGB(100, 100, 150))
-local randomTypeButton = makeButton("Random Type: Close", Color3.fromRGB(100, 150, 100))
-local wallToggleButton = makeButton("Ignore Walls: ON", Color3.fromRGB(120, 120, 120))
-local lookPartButton = makeButton("Look Part: Head", Color3.fromRGB(80, 80, 200))
-local bloxFruitsButton = makeButton("Blox Fruits: OFF", Color3.fromRGB(200, 120, 50))
 
+dropdown.MouseButton1Click:Connect(function()
+	dropdownFrame.Visible = not dropdownFrame.Visible
+end)
 
--- Look Part ドロップダウン
-local lookPartDropdown = Instance.new("Frame")
-lookPartDropdown.Size = UDim2.new(1, 0, 0, 120)
-lookPartDropdown.Position = UDim2.new(0, 0, 0, 38)
-lookPartDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-lookPartDropdown.Visible = false
-lookPartDropdown.BorderSizePixel = 0
-lookPartDropdown.Parent = buttonScroll
+-- 🟢 共通スイッチ作成関数
+local function createSwitch(parent, text, default, callback)
+	local frame = Instance.new("Frame", parent)
+	frame.Size = UDim2.new(1, -10, 0, 40)
+	frame.BackgroundTransparency = 1
 
-local lookListLayout = Instance.new("UIListLayout", lookPartDropdown)
-lookListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-lookListLayout.Padding = UDim.new(0, 4)
+	local label = Instance.new("TextLabel", frame)
+	label.Size = UDim2.new(0.6, 0, 1, 0)
+	label.Position = UDim2.new(0, 0, 0, 0)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Font = Enum.Font.GothamBold
+	label.TextSize = 14
+	label.TextColor3 = Color3.new(1, 1, 1)
 
--- 選択肢
-local function makeLookOption(name)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, 0, 0, 30)
-	btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Text = name
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 14
-	btn.Parent = lookPartDropdown
-	btn.MouseButton1Click:Connect(function()
-		lookPartButton.Text = "Look Part: " .. name
-		lookPartDropdown.Visible = false
-		camLockPart = name
+	local switchBase = Instance.new("Frame", frame)
+	switchBase.Size = UDim2.new(0, 50, 0, 24)
+	switchBase.Position = UDim2.new(1, -60, 0.5, -12)
+	switchBase.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	switchBase.BackgroundTransparency = 0.3
+	local baseCorner = Instance.new("UICorner", switchBase)
+	baseCorner.CornerRadius = UDim.new(1, 0)
+
+	local handle = Instance.new("Frame", switchBase)
+	handle.Size = UDim2.new(0, 20, 0, 20)
+	handle.Position = UDim2.new(0, 2, 0.5, -10)
+	handle.BackgroundColor3 = Color3.new(1, 1, 1)
+	local handleCorner = Instance.new("UICorner", handle)
+	handleCorner.CornerRadius = UDim.new(1, 0)
+
+	local state = default or false
+	local function updateUI()
+		if state then
+			switchBase.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+			handle:TweenPosition(UDim2.new(1, -22, 0.5, -10), "Out", "Quad", 0.2, true)
+		else
+			switchBase.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			handle:TweenPosition(UDim2.new(0, 2, 0.5, -10), "Out", "Quad", 0.2, true)
+		end
+	end
+
+	switchBase.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			state = not state
+			updateUI()
+			if callback then callback(state) end
+		end
 	end)
+
+	updateUI()
+	return frame
 end
 
-makeLookOption("Head")
-makeLookOption("Torso")
-makeLookOption("Legs")
+-- Refresh ボタン（普通のボタン）
+local refreshButton = Instance.new("TextButton", buttonScroll)
+refreshButton.Size = UDim2.new(1, -10, 0, 40)
+refreshButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+refreshButton.TextColor3 = Color3.new(1, 1, 1)
+refreshButton.Text = "Refresh"
+refreshButton.Font = Enum.Font.GothamBold
+refreshButton.TextSize = 14
+
+refreshButton.MouseButton1Click:Connect(function()
+	updatePlayerList()
+end)
+
+createSwitch(buttonScroll, "Move to Target", false, function(state)
+	moving = state
+end)
+createSwitch(buttonScroll, "Cam Lock", false, function(state)
+	camLock = state
+end)
+createSwitch(buttonScroll, "Random", false, function(state)
+	randomMode = state
+end)
+createSwitch(buttonScroll, "Same Team", false, function(state)
+	sameTeamEnabled = state
+end)
+createSwitch(buttonScroll, "Random Type (Close/Full)", true, function(state)
+	randomTypeClose = state
+end)
+createSwitch(buttonScroll, "Ignore Walls", true, function(state)
+	ignoreWalls = state
+end)
+createSwitch(buttonScroll, "Blox Fruits Mode", false, function(state)
+	bloxFruitsMode = state
+end)
+
+-- 🟢 Look Part ドロップダウン
+local lookParts = {"Head", "Torso","Legs"}
+local currentLookPart = "Head"
+
+local lookDropdownFrame = Instance.new("Frame", buttonScroll)
+lookDropdownFrame.Size = UDim2.new(1, -10, 0, 40)
+lookDropdownFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+lookDropdownFrame.BackgroundTransparency = 0.3
+
+local dropdownCorner = Instance.new("UICorner", lookDropdownFrame)
+dropdownCorner.CornerRadius = UDim.new(0, 8)
+
+local dropdownLabel = Instance.new("TextLabel", lookDropdownFrame)
+dropdownLabel.Size = UDim2.new(1, -20, 1, 0)
+dropdownLabel.Position = UDim2.new(0, 10, 0, 0)
+dropdownLabel.BackgroundTransparency = 1
+dropdownLabel.Text = "Look Part: " .. currentLookPart
+dropdownLabel.Font = Enum.Font.GothamBold
+dropdownLabel.TextSize = 14
+dropdownLabel.TextColor3 = Color3.new(1, 1, 1)
+dropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+lookDropdownFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		local index = table.find(lookParts, currentLookPart)
+		local nextIndex = index % #lookParts + 1
+		currentLookPart = lookParts[nextIndex]
+		dropdownLabel.Text = "Look Part: " .. currentLookPart
+		camLockPart = currentLookPart
+	end
+end)
 
 -- スクロール範囲自動調整
 buttonLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	buttonScroll.CanvasSize = UDim2.new(0, 0, 0, buttonLayout.AbsoluteContentSize.Y + 20)
 end)
 
--- CanvasSize自動更新
 buttonScroll.CanvasSize = UDim2.new(0, 0, 0, buttonLayout.AbsoluteContentSize.Y + 40)
-
-local toggleButton = Instance.new("ImageButton")
-toggleButton.Size = UDim2.new(0, 50, 0, 50)  -- 小さい正方形
-toggleButton.Position = UDim2.new(0, 100, 0, 100) -- 初期位置
-toggleButton.BackgroundTransparency = 1
-toggleButton.Image = "rbxassetid://125855645824065"  -- 画像ID
-toggleButton.Parent = screenGui
-toggleButton.Active = true
-toggleButton.Draggable = true  -- ドラッグ可能
-local toggleCorner =Instance.new("UICorner",toggleButton)
-toggleCorner.CornerRadius = UDim.new(0.25,0)
-
-
--- State variables
-local selectedTarget = nil
-local targetBillboard = nil
-local targetBoxBillboard = nil
-local targetBillboardConnection = nil
-local moving = false
-local camLock = false
-local randomMode = false
-local sameTeamEnabled = false
-local randomTypeClose = true
-local minimized = false
-
-speedBox.FocusLost:Connect(function(enterPressed)
-	local newSpeed = tonumber(speedBox.Text)
-	if newSpeed and newSpeed > 0 then
-		MOVE_SPEED = newSpeed
-		speedBox.Text = tostring(MOVE_SPEED)
-	else
-		speedBox.Text = tostring(MOVE_SPEED) -- 無効入力なら元の値に戻す
-	end
-end)
-
-toggleButton.MouseButton1Click:Connect(function()
-	mainFrame.Visible = not mainFrame.Visible
-end)
-
-local function updateButtonsText()
-	moveButton.Text = moving and "Move: ON" or "Move: OFF"
-	camButton.Text = camLock and "Cam Lock: ON" or "Cam Lock: OFF"
-	randomButton.Text = randomMode and "Random: ON" or "Random: OFF"
-	sameTeamButton.Text = sameTeamEnabled and "Same Team: ON" or "Same Team: OFF"
-	randomTypeButton.Text = randomTypeClose and "Random Type: Close" or "Random Type: Full"
-	wallToggleButton.Text = "Ignore Walls: " .. (ignoreWalls and "ON" or "OFF")
-end
-
--- Update player list dropdown
-local function updatePlayerList()
-	dropdownFrame:ClearAllChildren()
-	uiListLayout = Instance.new("UIListLayout", dropdownFrame)
-	uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	uiListLayout.Padding = UDim.new(0, 4)
-
-	local count = 0
-
-	-- Add 'None' option
-	local noneBtn = Instance.new("TextButton", dropdownFrame)
-	noneBtn.Size = UDim2.new(1, 0, 0, 30)
-	noneBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-	noneBtn.TextColor3 = Color3.new(1, 1, 1)
-	noneBtn.Text = "None"
-	noneBtn.Font = Enum.Font.GothamBold
-	noneBtn.TextSize = 16
-	noneBtn.MouseButton1Click:Connect(function()
-		selectedTarget = nil
-		dropdown.Text = "Select Player"
-		randomMode = false
-		updateButtonsText()
-	end)
-	count += 1
-
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr ~= player then
-			local btn = Instance.new("TextButton", dropdownFrame)
-			btn.Size = UDim2.new(1, 0, 0, 30)
-			btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-			btn.TextColor3 = Color3.new(1, 1, 1)
-			btn.Text = plr.Name
-			btn.Font = Enum.Font.GothamBold
-			btn.TextSize = 16
-
-			btn.MouseButton1Click:Connect(function()
-				selectedTarget = plr
-				dropdown.Text = "Target: " .. plr.Name
-				dropdownFrame.Visible = false
-				randomMode = false
-				updateButtonsText()
-			end)
-			count += 1
-		end
-	end
-	dropdownFrame.CanvasSize = UDim2.new(0, 0, 0, count * 34)
-end
 
 -- Raycast でターゲットとの間に壁があるかチェック
 local function isVisible(target)
@@ -430,60 +508,6 @@ local function pickRandomTarget()
 end
 
 updatePlayerList()
-updateButtonsText()
-
--- Button click events
-dropdown.MouseButton1Click:Connect(function()
-	dropdownFrame.Visible = not dropdownFrame.Visible
-end)
-
-refreshButton.MouseButton1Click:Connect(function()
-	updatePlayerList()
-end)
-
-moveButton.MouseButton1Click:Connect(function()
-	moving = not moving
-	updateButtonsText()
-end)
-
-camButton.MouseButton1Click:Connect(function()
-	camLock = not camLock
-	updateButtonsText()
-end)
-
-randomButton.MouseButton1Click:Connect(function()
-	randomMode = not randomMode
-	if randomMode then
-		pickRandomTarget()
-	end
-	updateButtonsText()
-end)
-
-sameTeamButton.MouseButton1Click:Connect(function()
-	sameTeamEnabled = not sameTeamEnabled
-	updateButtonsText()
-end)
-
-randomTypeButton.MouseButton1Click:Connect(function()
-	randomTypeClose = not randomTypeClose
-	updateButtonsText()
-end)
-
-wallToggleButton.MouseButton1Click:Connect(function()
-	ignoreWalls = not ignoreWalls
-	updateButtonsText()
-end)
-
-
-lookPartButton.MouseButton1Click:Connect(function()
-	lookPartDropdown.Visible = not lookPartDropdown.Visible
-end)
-
-bloxFruitsButton.MouseButton1Click:Connect(function()
-	bloxFruitsMode = not bloxFruitsMode
-	bloxFruitsButton.Text = bloxFruitsMode and "Blox Fruits: ON" or "Blox Fruits: OFF"
-end)
-
 
 closeButton.MouseButton1Click:Connect(function()
 	-- 確認ダイアログ作成
@@ -605,10 +629,6 @@ RunService.Heartbeat:Connect(function()
 			lookPos = selectedTarget.Character.HumanoidRootPart.Position - Vector3.new(0, 3, 0)
 		end
 		
-		if lookPos and bloxFruitsMode then
-			lookPos = lookPos + BLOXFRUITS_OFFSET
-		end
-		
 		if lookPos then
 			cam.CFrame = CFrame.new(cam.CFrame.Position, lookPos)
 		end
@@ -646,8 +666,7 @@ RunService.Heartbeat:Connect(function()
 					end
 				end
 
-				-- 💡 1000以上離れたときも島チェック
-				if lastDistance and (distance - lastDistance) > 1000 then
+				if lastDistance and (distance - lastDistance) > 2000 then
 					if island and islandDist < (hrp.Position - targetPos).Magnitude then
 						-- 島が有効 → 島にTPして追尾継続
 						hrp.CFrame = CFrame.new(island)
@@ -659,7 +678,6 @@ RunService.Heartbeat:Connect(function()
 						-- 島もダメなら追尾停止
 						destroyFollowPlatform()
 						moving = false
-						updateButtonsText()
 						lastDistance = nil
 						return
 					end
