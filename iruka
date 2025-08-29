@@ -394,9 +394,6 @@ end)
 createSwitch(buttonScroll, "Ignore Walls", true, function(state)
 	ignoreWalls = state
 end)
-createSwitch(buttonScroll, "Blox Fruits Mode", false, function(state)
-	bloxFruitsMode = state
-end)
 
 -- Name + HP + Distance ESP
 createSwitch(espFrame, "ESP", false, function(state)
@@ -405,7 +402,7 @@ createSwitch(espFrame, "ESP", false, function(state)
 			if state then
 				local billboard = Instance.new("BillboardGui")
 				billboard.Name = "ESP"
-				billboard.Size = UDim2.new(0, 150, 0, 25)
+				billboard.Size = UDim2.new(0, 160, 0, 30)
 				billboard.StudsOffset = Vector3.new(0, 3, 0) -- 頭の上に表示
 				billboard.AlwaysOnTop = true
 				billboard.Adornee = plr.Character.Head
@@ -479,7 +476,7 @@ createSwitch(espFrame,"Box ESP V2", false, function(state)
 			if state then
 				local box = Instance.new("BoxHandleAdornment")
 				box.Name = "BoxESP"
-				box.Size = Vector3.new(6, 9, 0.1) -- Scaleっぽく設定
+				box.Size = Vector3.new(10, 18, 0.1) -- Scaleっぽく設定
 				box.Color3 = Color3.new(0.4, 0.4, 0.4)
 				box.Transparency = 0.5
 				box.AlwaysOnTop = true
@@ -513,7 +510,7 @@ createSwitch(espFrame, "Tracer ESP", false, function(state)
 					if not tracers[plr] then
 						local line = Drawing.new("Line")
 						line.Thickness = 2
-						line.Color = Color3.fromRGB(255, 0, 0)
+						line.Color = Color3.fromRGB(222, 225, 255)
 						tracers[plr] = line
 					end
 
@@ -535,6 +532,37 @@ createSwitch(espFrame, "Tracer ESP", false, function(state)
 		tracers = {}
 	end
 end)
+
+-- Blox Fruits Mode 自動判定 + 通知
+if game.PlaceId == 4442272183 then
+	bloxFruitsMode = true
+
+	-- 通知用Frame
+	local notifyFrame = Instance.new("Frame")
+	notifyFrame.Size = UDim2.new(0, 200, 0, 50)
+	notifyFrame.Position = UDim2.new(1, -210, 1, -60) -- 右下に表示
+	notifyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	notifyFrame.BackgroundTransparency = 0.2
+	notifyFrame.BorderSizePixel = 0
+	notifyFrame.Parent = screenGui
+
+	local notifyLabel = Instance.new("TextLabel", notifyFrame)
+	notifyLabel.Size = UDim2.new(1, 0, 1, 0)
+	notifyLabel.BackgroundTransparency = 1
+	notifyLabel.Text = "Blox Fruits Mode ON"
+	notifyLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+	notifyLabel.Font = Enum.Font.GothamBold
+	notifyLabel.TextSize = 16
+	notifyLabel.TextScaled = true
+
+	-- Tweenで徐々に消す
+	local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 1) -- 1秒待って2秒でフェード
+	local tween = TweenService:Create(notifyFrame, tweenInfo, {BackgroundTransparency = 1})
+	tween:Play()
+	tween.Completed:Connect(function()
+		notifyFrame:Destroy()
+	end)
+end
 
 -- 🟢 Look Part ドロップダウン
 local lookParts = {"Head", "Torso","Legs"}
