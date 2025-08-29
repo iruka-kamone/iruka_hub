@@ -13,7 +13,6 @@ local currentTween = nil
 local followConnection = nil
 local ignoreWalls = true
 local bloxFruitsMode = false
-
 local selectedTarget = nil
 local moving = false
 local camLock = false
@@ -183,21 +182,75 @@ espFrame.BackgroundTransparency = 1
 espFrame.Visible = false
 
 -- ESPフレーム作成後に追加
-local layout = Instance.new("UIListLayout")
-layout.Parent = espFrame
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0, 5) -- スイッチ間の隙間
+local espLayout = Instance.new("UIListLayout")
+espLayout.Parent = espFrame
+espLayout.SortOrder = Enum.SortOrder.LayoutOrder
+espLayout.Padding = UDim.new(0, 5) -- スイッチ間の隙間
 
+local otherLeftFrame = Instance.new("Frame", mainFrame)
+otherLeftFrame.Size = UDim2.new(0, 180, 1, -35)
+otherLeftFrame.Position = UDim2.new(0, 0, 0, 35)
+otherLeftFrame.BackgroundTransparency = 1
+otherLeftFrame.Visible = false
+
+local otherRightFrame = Instance.new("Frame", mainFrame)
+otherRightFrame.Size = UDim2.new(0, 250, 1, -35)
+otherRightFrame.Position = UDim2.new(0, 180, 0, 35)
+otherRightFrame.BackgroundTransparency = 1
+otherRightFrame.Visible = false
+
+-- Other タブボタン作成
+local otherButton = Instance.new("TextButton", tabFrame)
+otherButton.Size = UDim2.new(0.5, -2, 1, -4)
+otherButton.Position = UDim2.new(1, 2, 0, 2)  -- Home と ESP の右に配置
+otherButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+otherButton.TextColor3 = Color3.new(1,1,1)
+otherButton.Text = "Other"
+otherButton.Font = Enum.Font.GothamBold
+otherButton.TextSize = 14
+
+local otherCorner = Instance.new("UICorner", otherButton)
+otherCorner.CornerRadius = UDim.new(0, 6)
+
+local otherLeftScroll = Instance.new("ScrollingFrame", otherLeftFrame)
+otherLeftScroll.Size = UDim2.new(1, 0, 1, 0)
+otherLeftScroll.BackgroundTransparency = 1
+otherLeftScroll.ScrollBarThickness = 6
+otherLeftScroll.ClipsDescendants = true
+
+local otherLeftLayout = Instance.new("UIListLayout", otherLeftScroll)
+otherLeftLayout.SortOrder = Enum.SortOrder.LayoutOrder
+otherLeftLayout.Padding = UDim.new(0, 6)
+
+local otherRightScroll = Instance.new("ScrollingFrame", otherRightFrame)
+otherRightScroll.Size = UDim2.new(1, 0, 1, 0)
+otherRightScroll.BackgroundTransparency = 1
+otherRightScroll.ScrollBarThickness = 6
+otherRightScroll.ClipsDescendants = true
+
+local otherRightLayout = Instance.new("UIListLayout", otherRightScroll)
+otherRightLayout.SortOrder = Enum.SortOrder.LayoutOrder
+otherRightLayout.Padding = UDim.new(0, 6)
 
 local function switchPage(page)
 	if page == "Home" then
 		leftFrame.Visible = true
 		rightFrame.Visible = true
 		espFrame.Visible = false
+		if otherLeftFrame then otherLeftFrame.Visible = false end
+		if otherRightFrame then otherRightFrame.Visible = false end
 	elseif page == "ESP" then
 		leftFrame.Visible = false
 		rightFrame.Visible = false
 		espFrame.Visible = true
+		if otherLeftFrame then otherLeftFrame.Visible = false end
+		if otherRightFrame then otherRightFrame.Visible = false end
+	elseif page == "Other" then
+		leftFrame.Visible = false
+		rightFrame.Visible = false
+		espFrame.Visible = false
+		if otherLeftFrame then otherLeftFrame.Visible = true end
+		if otherRightFrame then otherRightFrame.Visible = true end
 	end
 end
 
@@ -207,6 +260,10 @@ end)
 
 espButton.MouseButton1Click:Connect(function()
 	switchPage("ESP")
+end)
+
+otherButton.MouseButton1Click:Connect(function()
+	switchPage("Other")
 end)
 
 switchPage("Home")
@@ -340,6 +397,7 @@ local function createSwitch(parent, text, default, callback)
 	handleCorner.CornerRadius = UDim.new(1, 0)
 
 	local state = default or false
+	
 	local function updateUI()
 		if state then
 			switchBase.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
@@ -360,7 +418,9 @@ local function createSwitch(parent, text, default, callback)
 	end)
 
 	updateUI()
+
 	return frame
+
 end
 
 -- Refresh ボタン（普通のボタン）
@@ -476,7 +536,7 @@ createSwitch(espFrame,"Box ESP V2", false, function(state)
 			if state then
 				local box = Instance.new("BoxHandleAdornment")
 				box.Name = "BoxESP"
-				box.Size = Vector3.new(10, 18, 0.1) -- Scaleっぽく設定
+				box.Size = Vector3.new(45, 35, 0.1) -- Scaleっぽく設定
 				box.Color3 = Color3.new(0.4, 0.4, 0.4)
 				box.Transparency = 0.5
 				box.AlwaysOnTop = true
@@ -490,7 +550,6 @@ createSwitch(espFrame,"Box ESP V2", false, function(state)
 		end
 	end
 end)
-
 
 createSwitch(espFrame, "Tracer ESP", false, function(state)
 	local tracers = {}
@@ -564,6 +623,34 @@ if game.PlaceId == 4442272183 then
 	end)
 end
 
+-- Fix Lava スイッチ（BloxFruitsモード専用）
+local fixLavaSwitch = createSwitch(otherLeftFrame, "Fix Lava", false, function(state)
+	if state and bloxFruitsMode then
+		-- Mapの中にある対象のエリア名
+		local targets = {"CircleIsland", "GhostShipInterior"}
+
+		for _, areaName in ipairs(targets) do
+			local area = workspace:WaitForChild("Map"):FindFirstChild(areaName)
+
+			if area then
+				-- area の中のすべての LavaParts を削除
+				for _, obj in ipairs(area:GetDescendants()) do
+					if obj.Name == "LavaParts" then
+						obj:Destroy()
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- BloxFruitsモードがOFFのときは灰色にする
+if not bloxFruitsMode then
+	print(2)
+	fixLavaSwitch.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- 灰色
+	fixLavaSwitch.Active = false
+	fixLavaSwitch.TextLabel.Text ="Bloxfruits only"
+end
 -- 🟢 Look Part ドロップダウン
 local lookParts = {"Head", "Torso","Legs"}
 local currentLookPart = "Head"
