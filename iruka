@@ -7,7 +7,6 @@ local camera = workspace.CurrentCamera
 local MOVE_SPEED = 300
 local camLockPart = "Head"
 
--- 追尾用透明パーツ
 local followPlatform = nil
 local currentTween = nil
 local followConnection = nil
@@ -19,6 +18,14 @@ local camLock = false
 local randomMode = false
 local sameTeamEnabled = false
 local randomTypeClose = true
+local espEnabled = false
+local boxEspV1Enabled = false
+local boxEspV2Enabled = false
+local tracerEnabled = false
+local useTween = true
+
+local tracers = {}
+local connections = {}
 
 local islands = {
 	Vector3.new(-287, 305.9, 597.6),
@@ -117,6 +124,13 @@ buttonScroll.ClipsDescendants = true
 local buttonLayout = Instance.new("UIListLayout", buttonScroll)
 buttonLayout.SortOrder = Enum.SortOrder.LayoutOrder
 buttonLayout.Padding = UDim.new(0, 6)
+
+local padding = Instance.new("UIPadding")
+padding.Parent = buttonScroll
+padding.PaddingTop = UDim.new(0, 10)    -- ← 一番上を10ピクセル空ける
+padding.PaddingBottom = UDim.new(0, 5) -- 下の余白（お好み）
+padding.PaddingLeft = UDim.new(0, 5)   -- 左の余白
+padding.PaddingRight = UDim.new(0, 5)  -- 右の余白
 
 -- 左列フレーム（Player選択 + Speed）
 local leftFrame = Instance.new("Frame", mainFrame)
@@ -369,7 +383,10 @@ end)
 local function createSwitch(parent, text, default, callback)
 	local frame = Instance.new("Frame", parent)
 	frame.Size = UDim2.new(1, -10, 0, 40)
-	frame.BackgroundTransparency = 1
+	frame.BackgroundTransparency = 0.5
+	frame.BackgroundColor3 =Color3.new(0, 0, 0)
+	local frameCorner = Instance.new("UICorner", frame)
+	frameCorner.CornerRadius = UDim.new(0, 13)
 
 	local label = Instance.new("TextLabel", frame)
 	label.Size = UDim2.new(0.6, 0, 1, 0)
@@ -397,7 +414,7 @@ local function createSwitch(parent, text, default, callback)
 	handleCorner.CornerRadius = UDim.new(1, 0)
 
 	local state = default or false
-	
+
 	local function updateUI()
 		if state then
 			switchBase.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
@@ -407,7 +424,7 @@ local function createSwitch(parent, text, default, callback)
 			handle:TweenPosition(UDim2.new(0, 2, 0.5, -10), "Out", "Quad", 0.2, true)
 		end
 	end
-	
+
 	switchBase.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 
 			or input.UserInputType == Enum.UserInputType.Touch then
@@ -426,11 +443,13 @@ end
 -- Refresh ボタン（普通のボタン）
 local refreshButton = Instance.new("TextButton", buttonScroll)
 refreshButton.Size = UDim2.new(1, -10, 0, 40)
-refreshButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+refreshButton.BackgroundColor3 = Color3.fromRGB(36, 72, 107)
 refreshButton.TextColor3 = Color3.new(1, 1, 1)
 refreshButton.Text = "Refresh"
 refreshButton.Font = Enum.Font.GothamBold
 refreshButton.TextSize = 14
+local refreshCorner = Instance.new("UICorner", refreshButton)
+refreshCorner.CornerRadius = UDim.new(0, 13)
 
 refreshButton.MouseButton1Click:Connect(function()
 	updatePlayerList()
@@ -438,6 +457,9 @@ end)
 
 createSwitch(buttonScroll, "Move to Target", false, function(state)
 	moving = state
+end)
+createSwitch(buttonScroll, "Tween Mode (Tween/TP)", true, function(state)
+	useTween = state
 end)
 createSwitch(buttonScroll, "Cam Lock", false, function(state)
 	camLock = state
@@ -455,143 +477,190 @@ createSwitch(buttonScroll, "Ignore Walls", true, function(state)
 	ignoreWalls = state
 end)
 
--- Name + HP + Distance ESP
-createSwitch(espFrame, "ESP", false, function(state)
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid") then
-			if state then
-				local billboard = Instance.new("BillboardGui")
-				billboard.Name = "ESP"
-				billboard.Size = UDim2.new(0, 160, 0, 30)
-				billboard.StudsOffset = Vector3.new(0, 3, 0) -- 頭の上に表示
-				billboard.AlwaysOnTop = true
-				billboard.Adornee = plr.Character.Head
+local function addNameEsp(plr)
+	if not espEnabled then return end
+	if not plr.Character or not plr.Character:FindFirstChild("Head") then return end
+	if plr.Character.Head:FindFirstChild("ESP") then return end
 
-				local label = Instance.new("TextLabel", billboard)
-				label.AnchorPoint = Vector2.new(0.5, 0.5)
-				label.Position = UDim2.new(0.5, 0, 0.5, 0)
-				label.Size = UDim2.new(1,0,1,0)
-				label.BackgroundTransparency = 1
-				label.TextColor3 = Color3.new(1, 0, 0)
-				label.TextStrokeTransparency = 0.5
-				label.Font = Enum.Font.Michroma
-				label.TextScaled = true
-				label.RichText = true
-				
-				local humanoid = plr.Character:FindFirstChild("Humanoid")
-				
-				local function updateInfo()
-					local health = humanoid and math.floor(humanoid.Health) or "???"
-					local root = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-					local distance = 0
-					if root then
-						distance = (root.Position - plr.Character.HumanoidRootPart.Position).Magnitude
-					end
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "ESP"
+	billboard.Size = UDim2.new(0, 160, 0, 30)
+	billboard.StudsOffset = Vector3.new(0, 3, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Adornee = plr.Character.Head
 
-					label.Text = string.format(
-						"<font color='rgb(255,255,255)'>%s</font> <font color='rgb(0,255,0)'> *%.0f m* </font>\n<font color='rgb(0,255,255)'>[%d / %d]</font>",
-						plr.Name, distance, health, humanoid.MaxHealth
-					)
-				end
+	local label = Instance.new("TextLabel", billboard)
+	label.AnchorPoint = Vector2.new(0.5, 0.5)
+	label.Position = UDim2.new(0.5, 0, 0.5, 0)
+	label.Size = UDim2.new(1,0,1,0)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.new(1, 0, 0)
+	label.TextStrokeTransparency = 0.5
+	label.Font = Enum.Font.Michroma
+	label.TextScaled = true
+	label.RichText = true
 
-				updateInfo()
-				local conn = humanoid.HealthChanged:Connect(updateInfo)
-				RunService.RenderStepped:Connect(updateInfo)
+	local humanoid = plr.Character:FindFirstChild("Humanoid")
 
-				billboard.Parent = plr.Character.Head
-			else
-				local esp = plr.Character.Head:FindFirstChild("ESP")
-				if esp then esp:Destroy() end
-			end
+	local function updateInfo()
+		if not humanoid then return end
+		local health = math.floor(humanoid.Health)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local distance = 0
+		if root then
+			distance = (root.Position - plr.Character.HumanoidRootPart.Position).Magnitude
 		end
+
+		label.Text = string.format(
+			"<font color='rgb(255,255,255)'>%s</font> <font color='rgb(0,255,0)'> %.0f m </font>\n<font color='rgb(0,255,255)'>[%d / %d]</font>",
+			plr.Name, distance, health, humanoid.MaxHealth
+		)
 	end
-end)
 
+	updateInfo()
+	table.insert(connections, humanoid.HealthChanged:Connect(updateInfo))
+	table.insert(connections, RunService.RenderStepped:Connect(updateInfo))
 
--- Box ESP
-createSwitch(espFrame,"Box ESP V1", false, function(state)
+	billboard.Parent = plr.Character.Head
+end
+
+local function addBoxEsp(plr, v2)
+	if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
+	local hrp = plr.Character.HumanoidRootPart
+	if hrp:FindFirstChild("BoxESP") then return end
+
+	local box = Instance.new("BoxHandleAdornment")
+	box.Name = "BoxESP"
+	box.Size = v2 and Vector3.new(45, 35, 0.1) or Vector3.new(4, 7, 2)
+	box.Color3 = v2 and Color3.new(0.4,0.4,0.4) or Color3.new(0,1,0)
+	box.Transparency = 0.5
+	box.AlwaysOnTop = true
+	box.ZIndex = 5
+	box.Adornee = hrp
+	box.Parent = hrp
+end
+
+-- ESPの有効化/無効化処理
+local function toggleNameEsp(state)
+	espEnabled = state
 	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+		if plr ~= player then
 			if state then
-				local box = Instance.new("BoxHandleAdornment")
-				box.Name = "BoxESP"
-				box.Size = Vector3.new(4, 7, 2) -- Scaleっぽく設定
-				box.Color3 = Color3.new(0, 1, 0)
-				box.Transparency = 0.5
-				box.AlwaysOnTop = true
-				box.ZIndex = 5
-				box.Adornee = plr.Character.HumanoidRootPart
-				box.Parent = plr.Character.HumanoidRootPart
+				addNameEsp(plr)
 			else
-				local esp = plr.Character.HumanoidRootPart:FindFirstChild("BoxESP")
-				if esp then esp:Destroy() end
-			end
-		end
-	end
-end)
-
-createSwitch(espFrame,"Box ESP V2", false, function(state)
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-			if state then
-				local box = Instance.new("BoxHandleAdornment")
-				box.Name = "BoxESP"
-				box.Size = Vector3.new(45, 35, 0.1) -- Scaleっぽく設定
-				box.Color3 = Color3.new(0.4, 0.4, 0.4)
-				box.Transparency = 0.5
-				box.AlwaysOnTop = true
-				box.ZIndex = 5
-				box.Adornee = plr.Character.HumanoidRootPart
-				box.Parent = plr.Character.HumanoidRootPart
-			else
-				local esp = plr.Character.HumanoidRootPart:FindFirstChild("BoxESP")
-				if esp then esp:Destroy() end
-			end
-		end
-	end
-end)
-
-createSwitch(espFrame, "Tracer ESP", false, function(state)
-	local tracers = {}
-
-	if state then
-		RunService.RenderStepped:Connect(function()
-			local myChar = player.Character
-			if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
-			local myHRP = myChar.HumanoidRootPart
-
-			for _, plr in ipairs(Players:GetPlayers()) do
-				if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-					local targetHRP = plr.Character.HumanoidRootPart
-					local myPos, onScreen1 = camera:WorldToViewportPoint(myHRP.Position)
-					local targetPos, onScreen2 = camera:WorldToViewportPoint(targetHRP.Position)
-
-					if not tracers[plr] then
-						local line = Drawing.new("Line")
-						line.Thickness = 2
-						line.Color = Color3.fromRGB(222, 225, 255)
-						tracers[plr] = line
-					end
-
-					local line = tracers[plr]
-					if onScreen1 and onScreen2 then
-						line.From = Vector2.new(myPos.X, myPos.Y)
-						line.To = Vector2.new(targetPos.X, targetPos.Y)
-						line.Visible = true
-					else
-						line.Visible = false
-					end
+				if plr.Character and plr.Character:FindFirstChild("Head") then
+					local esp = plr.Character.Head:FindFirstChild("ESP")
+					if esp then esp:Destroy() end
 				end
 			end
-		end)
-	else
+		end
+	end
+end
+
+local function toggleBoxEspV1(state)
+	boxEspV1Enabled = state
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player then
+			if state then addBoxEsp(plr,false)
+			else
+				if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+					local esp = plr.Character.HumanoidRootPart:FindFirstChild("BoxESP")
+					if esp then esp:Destroy() end
+				end
+			end
+		end
+	end
+end
+
+local function toggleBoxEspV2(state)
+	boxEspV2Enabled = state
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player then
+			if state then addBoxEsp(plr,true)
+			else
+				if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+					local esp = plr.Character.HumanoidRootPart:FindFirstChild("BoxESP")
+					if esp then esp:Destroy() end
+				end
+			end
+		end
+	end
+end
+
+local function toggleTracer(state)
+	tracerEnabled = state
+	if not state then
 		for _, line in pairs(tracers) do
 			line:Remove()
 		end
 		tracers = {}
 	end
+end
+
+-- CharacterAddedハンドラ
+local function onCharacterAdded(plr, char)
+	char:WaitForChild("HumanoidRootPart")
+	char:WaitForChild("Head")
+
+	if espEnabled then addNameEsp(plr) end
+	if boxEspV1Enabled then addBoxEsp(plr,false) end
+	if boxEspV2Enabled then addBoxEsp(plr,true) end
+end
+
+-- 既存プレイヤーと新規プレイヤーの監視
+for _, plr in ipairs(Players:GetPlayers()) do
+	if plr ~= player then
+		plr.CharacterAdded:Connect(function(char)
+			onCharacterAdded(plr, char)
+		end)
+	end
+end
+
+Players.PlayerAdded:Connect(function(plr)
+	if plr ~= player then
+		plr.CharacterAdded:Connect(function(char)
+			onCharacterAdded(plr, char)
+		end)
+	end
 end)
 
+-- トレーサー更新
+RunService.RenderStepped:Connect(function()
+	if not tracerEnabled then return end
+	local myChar = player.Character
+	if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
+	local myHRP = myChar.HumanoidRootPart
+	local myPos, onScreen1 = camera:WorldToViewportPoint(myHRP.Position)
+
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			local targetHRP = plr.Character.HumanoidRootPart
+			local targetPos, onScreen2 = camera:WorldToViewportPoint(targetHRP.Position)
+
+			if not tracers[plr] then
+				local line = Drawing.new("Line")
+				line.Thickness = 2
+				line.Color = Color3.fromRGB(222, 225, 255)
+				tracers[plr] = line
+			end
+
+			local line = tracers[plr]
+			if onScreen1 and onScreen2 then
+				line.From = Vector2.new(myPos.X, myPos.Y)
+				line.To = Vector2.new(targetPos.X, targetPos.Y)
+				line.Visible = true
+			else
+				line.Visible = false
+			end
+		end
+	end
+end)
+
+-- GUIのボタンと連動
+createSwitch(espFrame, "ESP", false, toggleNameEsp)
+createSwitch(espFrame, "Box ESP V1", false, toggleBoxEspV1)
+createSwitch(espFrame, "Box ESP V2", false, toggleBoxEspV2)
+createSwitch(espFrame, "Tracer ESP", false, toggleTracer)
 -- Blox Fruits Mode 自動判定 + 通知
 if game.PlaceId == 4442272183 then
 	bloxFruitsMode = true
@@ -836,6 +905,7 @@ local function teleportTo(position)
 		createFollowPlatform(hrp.Position - Vector3.new(0, 2.5, 0))
 	end
 
+	-- 共通の処理: Tween停止・接続解除
 	if currentTween then
 		currentTween:Cancel()
 		currentTween = nil
@@ -845,27 +915,37 @@ local function teleportTo(position)
 		followConnection = nil
 	end
 
-	local distance = (position - followPlatform.Position).Magnitude
-	local time = distance / MOVE_SPEED
+	if useTween then
+		-- Tweenで移動
+		local distance = (position - followPlatform.Position).Magnitude
+		local time = distance / MOVE_SPEED
 
-	currentTween = TweenService:Create(followPlatform, TweenInfo.new(time, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Position = position})
+		currentTween = TweenService:Create(
+			followPlatform,
+			TweenInfo.new(time, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+			{Position = position}
+		)
 
-	followConnection = RunService.RenderStepped:Connect(function()
-		if followPlatform and followPlatform.Parent and hrp.Parent then
-			hrp.CFrame = CFrame.new(
-				followPlatform.Position + Vector3.new(0, 2.5, 0),
-				followPlatform.Position + followPlatform.CFrame.LookVector
-			)
-		end
-	end)
+		followConnection = RunService.RenderStepped:Connect(function()
+			if followPlatform and followPlatform.Parent and hrp.Parent then
+				hrp.CFrame = CFrame.new(
+					followPlatform.Position + Vector3.new(0, 2.5, 0),
+					followPlatform.Position + followPlatform.CFrame.LookVector
+				)
+			end
+		end)
 
-	currentTween:Play()
-	currentTween.Completed:Connect(function()
-		if followConnection then
-			followConnection:Disconnect()
-			followConnection = nil
-		end
-	end)
+		currentTween:Play()
+		currentTween.Completed:Connect(function()
+			if followConnection then
+				followConnection:Disconnect()
+				followConnection = nil
+			end
+		end)
+	else
+		-- 瞬間移動(TP)
+		hrp.CFrame = CFrame.new(position + Vector3.new(0, 2.5, 0))
+	end
 end
 
 local function getClosestIslandToTarget(targetPos)
@@ -894,7 +974,7 @@ RunService.Heartbeat:Connect(function()
 		elseif camLockPart == "Legs" and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
 			lookPos = selectedTarget.Character.HumanoidRootPart.Position - Vector3.new(0, 3, 0)
 		end
-		
+
 		if lookPos then
 			cam.CFrame = CFrame.new(cam.CFrame.Position, lookPos)
 		end
