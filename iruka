@@ -33,6 +33,8 @@ local islands = {
 	Vector3.new(923.2, 124.8, 32852.8),
 	Vector3.new(-6508.6, 82, -132.8),
 }
+local pos1 = Vector3.new(-287, 306.5, 597.9)
+local pos2 = Vector3.new(938, 252.7, 32888)
 
 local function createFollowPlatform(position)
 	if followPlatform then
@@ -246,6 +248,12 @@ local otherRightLayout = Instance.new("UIListLayout", otherRightScroll)
 otherRightLayout.SortOrder = Enum.SortOrder.LayoutOrder
 otherRightLayout.Padding = UDim.new(0, 6)
 
+local tpGui = Instance.new("ScreenGui")
+tpGui.Name = "TPGui"
+tpGui.ResetOnSpawn = false
+tpGui.Parent = player:WaitForChild("PlayerGui")
+tpGui.Enabled =false
+
 local function switchPage(page)
 	if page == "Home" then
 		leftFrame.Visible = true
@@ -382,7 +390,7 @@ end)
 -- 🟢 共通スイッチ作成関数
 local function createSwitch(parent, text, default, callback)
 	local frame = Instance.new("Frame", parent)
-	frame.Size = UDim2.new(1, -10, 0, 40)
+	frame.Size = UDim2.new(1, -10, 0, 30)
 	frame.BackgroundTransparency = 0.5
 	frame.BackgroundColor3 =Color3.new(0, 0, 0)
 	local frameCorner = Instance.new("UICorner", frame)
@@ -403,6 +411,7 @@ local function createSwitch(parent, text, default, callback)
 	switchBase.Position = UDim2.new(1, -60, 0.5, -12)
 	switchBase.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	switchBase.BackgroundTransparency = 0.3
+	switchBase.Name ="SwitchBase"
 	local baseCorner = Instance.new("UICorner", switchBase)
 	baseCorner.CornerRadius = UDim.new(1, 0)
 
@@ -417,7 +426,7 @@ local function createSwitch(parent, text, default, callback)
 
 	local function updateUI()
 		if state then
-			switchBase.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+			switchBase.BackgroundColor3 = Color3.fromRGB(0, 40, 255)
 			handle:TweenPosition(UDim2.new(1, -22, 0.5, -10), "Out", "Quad", 0.2, true)
 		else
 			switchBase.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -458,7 +467,7 @@ end)
 createSwitch(buttonScroll, "Move to Target", false, function(state)
 	moving = state
 end)
-createSwitch(buttonScroll, "Tween Mode (Tween/TP)", true, function(state)
+createSwitch(buttonScroll, "Tween Mode (TP/Tween)", true, function(state)
 	useTween = state
 end)
 createSwitch(buttonScroll, "Cam Lock", false, function(state)
@@ -693,16 +702,14 @@ if game.PlaceId == 4442272183 then
 end
 
 -- Fix Lava スイッチ（BloxFruitsモード専用）
-local fixLavaSwitch = createSwitch(otherLeftFrame, "Fix Lava", false, function(state)
-	if state and bloxFruitsMode then
-		-- Mapの中にある対象のエリア名
+local fixLavaSwitch = createSwitch(otherLeftScroll, "Fix Lava", false, function(state)
+	if state then
 		local targets = {"CircleIsland", "GhostShipInterior"}
 
 		for _, areaName in ipairs(targets) do
 			local area = workspace:WaitForChild("Map"):FindFirstChild(areaName)
 
 			if area then
-				-- area の中のすべての LavaParts を削除
 				for _, obj in ipairs(area:GetDescendants()) do
 					if obj.Name == "LavaParts" then
 						obj:Destroy()
@@ -713,12 +720,102 @@ local fixLavaSwitch = createSwitch(otherLeftFrame, "Fix Lava", false, function(s
 	end
 end)
 
+-- OtherFrame にボタン追加（createSwitchとかと同じノリ）
+local tpSwitch = createSwitch(otherLeftScroll, "TP GUI", false, function(state)
+	local tpGui = player.PlayerGui:FindFirstChild("TPGui")
+	if tpGui then
+		tpGui.Enabled = state
+	end
+end)
+
+local function createDraggableButton(name, emoji, position, targetPos)
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.Size = UDim2.new(0, 100, 0, 50)
+	button.Position = position
+	button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	button.Text = emoji
+	button.TextScaled = true
+	button.Font = Enum.Font.SourceSansBold
+	button.Parent = tpGui
+
+	-- UI を動かせるようにする
+	local dragToggle = false
+	local dragInput, dragStart, startPos
+
+	local function update(input)
+		local delta = input.Position - dragStart
+		button.Position = UDim2.new(
+			startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y
+		)
+	end
+
+	button.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragToggle = true
+			dragStart = input.Position
+			startPos = button.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragToggle = false
+				end
+			end)
+		end
+	end)
+
+	button.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+
+	game:GetService("UserInputService").InputChanged:Connect(function(input)
+		if input == dragInput and dragToggle then
+			update(input)
+		end
+	end)
+
+	-- 押したらテレポート
+	button.MouseButton1Click:Connect(function()
+		local char = player.Character or player.CharacterAdded:Wait()
+		local hrp = char:WaitForChild("HumanoidRootPart")
+		hrp.CFrame = CFrame.new(targetPos)
+		moving =false
+		
+		for _, child in ipairs(buttonScroll:GetChildren()) do
+			if child:IsA("Frame") and child:FindFirstChild("SwitchBase") and child:FindFirstChildOfClass("TextLabel") then
+				if child:FindFirstChildOfClass("TextLabel").Text == "Move to Target" then
+					local switchBase = child:FindFirstChild("SwitchBase")
+					if switchBase then
+						local handle = switchBase:FindFirstChildOfClass("Frame")
+						if handle then
+							handle:TweenPosition(UDim2.new(0, 2, 0.5, -10), "Out", "Quad", 0.2, true)
+							switchBase.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+						end
+					end
+				end
+			end
+		end
+	end)
+end
+
+-- ========= 実際に作る =========
+createDraggableButton("Dolphin", "🐬", UDim2.new(0, 10, 0, 10), pos1)
+createDraggableButton("Anchor", "⚓", UDim2.new(0, 120, 0, 10), pos2)
+
 -- BloxFruitsモードがOFFのときは灰色にする
-if not bloxFruitsMode then
-	print(2)
-	fixLavaSwitch.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- 灰色
-	fixLavaSwitch.Active = false
-	fixLavaSwitch.TextLabel.Text ="Bloxfruits only"
+if  bloxFruitsMode then
+	
+	local bloxfruitsGui ={fixLavaSwitch,tpSwitch}
+	
+	for i,switch in ipairs(bloxfruitsGui) do
+		switch.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- 灰色
+		switch.Active = false
+		switch.TextLabel.Text ="Bloxfruits only"
+		switch.TextLabel.TextTransparency =0.5
+		switch.SwitchBase.Visible =false
+	end
 end
 -- 🟢 Look Part ドロップダウン
 local lookParts = {"Head", "Torso","Legs"}
