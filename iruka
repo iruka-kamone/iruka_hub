@@ -805,7 +805,7 @@ createDraggableButton("Dolphin", "🐬", UDim2.new(0, 10, 0, 10), pos1)
 createDraggableButton("Anchor", "⚓", UDim2.new(0, 120, 0, 10), pos2)
 
 -- BloxFruitsモードがOFFのときは灰色にする
-if  bloxFruitsMode then
+if  not bloxFruitsMode then
 	
 	local bloxfruitsGui ={fixLavaSwitch,tpSwitch}
 	
