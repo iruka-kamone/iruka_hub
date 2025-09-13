@@ -24,6 +24,10 @@ local boxEspV2Enabled = false
 local tracerEnabled = false
 local useTween = true
 
+local lastTime = tick()
+local frameCount = 0
+local fps = 0
+
 local tracers = {}
 local connections = {}
 
@@ -44,7 +48,7 @@ local function createFollowPlatform(position)
 	followPlatform.Size = Vector3.new(4, 1, 4)
 	followPlatform.Anchored = true
 	followPlatform.CanCollide = false
-	followPlatform.Transparency = 1
+	followPlatform.Transparency = 0
 	followPlatform.Position = position
 	followPlatform.Parent = workspace
 end
@@ -254,6 +258,30 @@ tpGui.ResetOnSpawn = false
 tpGui.Parent = player:WaitForChild("PlayerGui")
 tpGui.Enabled =false
 
+local statsGui = Instance.new("ScreenGui")
+statsGui.Name = "StatsGui"
+statsGui.ResetOnSpawn = false
+statsGui.Parent = player:WaitForChild("PlayerGui")
+statsGui.Enabled =false
+
+local statsFrame = Instance.new("Frame",statsGui)
+statsFrame.Size = UDim2.new(0.35, 0, 0.12, 0)
+statsFrame.Position = UDim2.new(0.03, 0, 0, 0)
+statsFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+statsFrame.BackgroundTransparency = 0.2
+statsFrame.Active = true
+
+local frameCorner = Instance.new("UICorner", statsFrame)
+frameCorner.CornerRadius = UDim.new(0, 12)
+
+local statsLabel = Instance.new("TextLabel", statsFrame)
+statsLabel.Size = UDim2.new(1, 0, 1, 0)
+statsLabel.BackgroundTransparency = 1
+statsLabel.Font = Enum.Font.GothamBold
+statsLabel.TextSize = 14
+statsLabel.TextColor3 = Color3.new(1,1,1)
+statsLabel.TextXAlignment = Enum.TextXAlignment.Left
+
 local function switchPage(page)
 	if page == "Home" then
 		leftFrame.Visible = true
@@ -322,7 +350,7 @@ speedBox.FocusLost:Connect(function()
 	end
 end)
 
--- Toggle GUI
+-- Toggle Gui
 local toggleButton = Instance.new("ImageButton")
 toggleButton.Size = UDim2.new(0, 50, 0, 50)
 toggleButton.Position = UDim2.new(0, 100, 0, 100)
@@ -723,10 +751,11 @@ if game.PlaceId == 4442272183 then
 	showNotification("Success!\nBlox Fruits Mode ON", Color3.fromRGB(255, 255, 255))
 end
 -- remove Lava スイッチ（BloxFruitsモード専用）
-local fixLavaSwitch = createSwitch(otherLeftScroll, "Remove Lava", false, function(state)
+local removeLavaSwitch = createSwitch(otherLeftScroll, "Remove Lava", false, function(state)
 	if state then
 		local targets = {"CircleIsland", "GhostShipInterior"}
-
+		local foundLava = false
+		
 		for _, areaName in ipairs(targets) do
 			local area = workspace:WaitForChild("Map"):FindFirstChild(areaName)
 
@@ -735,17 +764,22 @@ local fixLavaSwitch = createSwitch(otherLeftScroll, "Remove Lava", false, functi
 					if obj.Name == "LavaParts" then
 						obj:Destroy()
 						showNotification("Success!\nRemoved lava", Color3.fromRGB(255, 255, 255))
-					else
-						showNotification("Oops!\nLava not found", Color3.fromRGB(255, 255, 255))
+						foundLava = true
 					end
 				end
 			end
+		end
+		
+		if foundLava then
+			showNotification("Success!\nRemoved lava", Color3.fromRGB(255, 255, 255))
+		else
+			showNotification("Oops!\nLava not found", Color3.fromRGB(255, 255, 255))
 		end
 	end
 end)
 
 -- OtherFrame にボタン追加（createSwitchとかと同じノリ）
-local tpSwitch = createSwitch(otherLeftScroll, "TP GUI", false, function(state)
+local tpSwitch = createSwitch(otherLeftScroll, "TP Gui", false, function(state)
 	local tpGui = player.PlayerGui:FindFirstChild("TPGui")
 	if tpGui then
 		tpGui.Enabled = state
@@ -828,10 +862,35 @@ end
 createDraggableButton("Dolphin", "🐬", UDim2.new(0, 10, 0, 10), pos1)
 createDraggableButton("Anchor", "⚓", UDim2.new(0, 120, 0, 10), pos2)
 
+local statsSwitch = createSwitch(otherLeftScroll, "Stats Gui", false, function(state)
+	local statsGui = player.PlayerGui:FindFirstChild("StatsGui")
+	if statsGui then
+		statsGui.Enabled = state
+	end
+end)
+
+RunService.Heartbeat:Connect(function()
+	frameCount += 1
+	local now = tick()
+	if now - lastTime >= 1 then
+		fps = frameCount / (now - lastTime)
+		frameCount = 0
+		lastTime = now
+	end
+
+	-- 座標
+	local pos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position or Vector3.new(0,0,0)
+
+	-- Ping
+	local ping = math.floor(player:GetNetworkPing() * 1000) -- 秒 → ms
+
+	-- 表示更新
+	statsLabel.Text = string.format("FPS: %d | Ping: %dms | POS: (%.1f, %.1f, %.1f)", fps, ping, pos.X, pos.Y, pos.Z)
+end)
 -- BloxFruitsモードがOFFのときは灰色にする
 if  not bloxFruitsMode then
 	
-	local bloxfruitsGui ={fixLavaSwitch,tpSwitch}
+	local bloxfruitsGui ={removeLavaSwitch,tpSwitch}
 	
 	for i,switch in ipairs(bloxfruitsGui) do
 		switch.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- 灰色
@@ -1049,9 +1108,10 @@ local function teleportTo(position)
 
 		followConnection = RunService.RenderStepped:Connect(function()
 			if followPlatform and followPlatform.Parent and hrp.Parent then
-				local targetPos = followPlatform.Position + Vector3.new(0, 2.5, 0)
-				hrp.CFrame = CFrame.lookAt(hrp.Position, targetPos) -- 方向だけ補正
-				hrp.Position = targetPos -- 位置はTweenに追従
+				hrp.CFrame = CFrame.new(
+					followPlatform.Position + Vector3.new(0, 2.5, 0),
+					followPlatform.Position + followPlatform.CFrame.LookVector
+				)
 			end
 		end)
 		
