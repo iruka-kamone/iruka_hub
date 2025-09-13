@@ -17,7 +17,7 @@ frame.BorderSizePixel = 0
 local inputBox = Instance.new("TextBox", frame)
 inputBox.Size = UDim2.new(1, -20, 0, 40)
 inputBox.Position = UDim2.new(0, 10, 0, 10)
-inputBox.PlaceholderText = "パスワードを入力"
+inputBox.PlaceholderText = "example ABC"
 inputBox.ClearTextOnFocus = false
 inputBox.Text = ""
 inputBox.TextColor3 = Color3.new(1,1,1)
@@ -32,7 +32,7 @@ submitButton.Size = UDim2.new(0, 100, 0, 40)
 submitButton.Position = UDim2.new(1, -110, 1, -50)
 submitButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
 submitButton.TextColor3 = Color3.new(1,1,1)
-submitButton.Text = "送信"
+submitButton.Text = "check key"
 submitButton.Font = Enum.Font.GothamSemibold
 submitButton.TextSize = 18
 
@@ -61,7 +61,7 @@ local function checkPassword()
 		passwordGui:Destroy()
 		loadMainScript()
 	else
-		errorLabel.Text = "パスワードが違います。もう一度入力してください。"
+		errorLabel.Text = "not valid"
 	end
 end
 
