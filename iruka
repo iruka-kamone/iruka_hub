@@ -338,6 +338,53 @@ toggleButton.MouseButton1Click:Connect(function()
 	mainFrame.Visible = not mainFrame.Visible
 end)
 
+local function showNotification(text, color)
+	local notifyFrame = Instance.new("Frame")
+	notifyFrame.Size = UDim2.new(0, 200, 0, 60)
+	notifyFrame.Position = UDim2.new(1, 210, 0, -70) -- 右外からスタート
+	notifyFrame.BackgroundColor3 = Color3.fromRGB(42, 42, 42)
+	notifyFrame.BackgroundTransparency = 0.2
+	notifyFrame.BorderSizePixel = 0
+	notifyFrame.Parent = screenGui
+	
+	local notifyConner = Instance.new("UICorner", notifyFrame)
+	notifyConner.CornerRadius = UDim.new(0.25, 0)
+
+	local notifyLabel = Instance.new("TextLabel", notifyFrame)
+	notifyLabel.Size = UDim2.new(0.9, 0, 0.9, 0)
+	notifyLabel.Position =UDim2.new(0.05,0,0.05,0)
+	notifyLabel.BackgroundTransparency = 1
+	notifyLabel.Text = text
+	notifyLabel.TextColor3 = color
+	notifyLabel.Font = Enum.Font.GothamBold
+	notifyLabel.TextSize = 16
+	notifyLabel.TextXAlignment = Enum.TextXAlignment.Left
+	notifyLabel.TextYAlignment = Enum.TextYAlignment.Top
+
+	-- 右からスライドイン
+	local tweenIn = TweenService:Create(
+		notifyFrame,
+		TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{Position = UDim2.new(1, -210, 1, -70)} -- 右下に収まる
+	)
+	tweenIn:Play()
+
+	-- 一定時間待って右にスライドアウト
+	tweenIn.Completed:Connect(function()
+		task.delay(3, function()
+			local tweenOut = TweenService:Create(
+				notifyFrame,
+				TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{Position = UDim2.new(1, 210, 1, -70)} -- 右外に戻る
+			)
+			tweenOut:Play()
+			tweenOut.Completed:Connect(function()
+				notifyFrame:Destroy()
+			end)
+		end)
+	end)
+end
+
 local function updatePlayerList()
 	-- 既存のリストをクリア
 	for _, child in ipairs(dropdownFrame:GetChildren()) do
@@ -640,7 +687,7 @@ RunService.RenderStepped:Connect(function()
 	if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
 	local myHRP = myChar.HumanoidRootPart
 	local myPos, onScreen1 = camera:WorldToViewportPoint(myHRP.Position)
-
+	
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
 			local targetHRP = plr.Character.HumanoidRootPart
@@ -673,36 +720,10 @@ createSwitch(espFrame, "Tracer ESP", false, toggleTracer)
 -- Blox Fruits Mode 自動判定 + 通知
 if game.PlaceId == 4442272183 then
 	bloxFruitsMode = true
-
-	-- 通知用Frame
-	local notifyFrame = Instance.new("Frame")
-	notifyFrame.Size = UDim2.new(0, 200, 0, 50)
-	notifyFrame.Position = UDim2.new(1, -210, 1, -60) -- 右下に表示
-	notifyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	notifyFrame.BackgroundTransparency = 0.2
-	notifyFrame.BorderSizePixel = 0
-	notifyFrame.Parent = screenGui
-
-	local notifyLabel = Instance.new("TextLabel", notifyFrame)
-	notifyLabel.Size = UDim2.new(1, 0, 1, 0)
-	notifyLabel.BackgroundTransparency = 1
-	notifyLabel.Text = "Blox Fruits Mode ON"
-	notifyLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-	notifyLabel.Font = Enum.Font.GothamBold
-	notifyLabel.TextSize = 16
-	notifyLabel.TextScaled = true
-
-	-- Tweenで徐々に消す
-	local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 1) -- 1秒待って2秒でフェード
-	local tween = TweenService:Create(notifyFrame, tweenInfo, {BackgroundTransparency = 1})
-	tween:Play()
-	tween.Completed:Connect(function()
-		notifyFrame:Destroy()
-	end)
+	showNotification("Success!\nBlox Fruits Mode ON", Color3.fromRGB(255, 255, 255))
 end
-
--- Fix Lava スイッチ（BloxFruitsモード専用）
-local fixLavaSwitch = createSwitch(otherLeftScroll, "Fix Lava", false, function(state)
+-- remove Lava スイッチ（BloxFruitsモード専用）
+local fixLavaSwitch = createSwitch(otherLeftScroll, "Remove Lava", false, function(state)
 	if state then
 		local targets = {"CircleIsland", "GhostShipInterior"}
 
@@ -713,6 +734,9 @@ local fixLavaSwitch = createSwitch(otherLeftScroll, "Fix Lava", false, function(
 				for _, obj in ipairs(area:GetDescendants()) do
 					if obj.Name == "LavaParts" then
 						obj:Destroy()
+						showNotification("Success!\nRemoved lava", Color3.fromRGB(255, 255, 255))
+					else
+						showNotification("Oops!\nLava not found", Color3.fromRGB(255, 255, 255))
 					end
 				end
 			end
@@ -840,7 +864,7 @@ dropdownLabel.TextColor3 = Color3.new(1, 1, 1)
 dropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 lookDropdownFrame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+	if input.UserInputType == Enum.UserInputType.MouseButton or input.UserInputType == Enum.UserInputType.Touch then
 		local index = table.find(lookParts, currentLookPart)
 		local nextIndex = index % #lookParts + 1
 		currentLookPart = lookParts[nextIndex]
@@ -1025,13 +1049,12 @@ local function teleportTo(position)
 
 		followConnection = RunService.RenderStepped:Connect(function()
 			if followPlatform and followPlatform.Parent and hrp.Parent then
-				hrp.CFrame = CFrame.new(
-					followPlatform.Position + Vector3.new(0, 2.5, 0),
-					followPlatform.Position + followPlatform.CFrame.LookVector
-				)
+				local targetPos = followPlatform.Position + Vector3.new(0, 2.5, 0)
+				hrp.CFrame = CFrame.lookAt(hrp.Position, targetPos) -- 方向だけ補正
+				hrp.Position = targetPos -- 位置はTweenに追従
 			end
 		end)
-
+		
 		currentTween:Play()
 		currentTween.Completed:Connect(function()
 			if followConnection then
