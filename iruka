@@ -374,7 +374,7 @@ local function showNotification(text, color)
 	notifyFrame.BackgroundTransparency = 0.2
 	notifyFrame.BorderSizePixel = 0
 	notifyFrame.Parent = screenGui
-	
+
 	local notifyConner = Instance.new("UICorner", notifyFrame)
 	notifyConner.CornerRadius = UDim.new(0.25, 0)
 
@@ -715,7 +715,7 @@ RunService.RenderStepped:Connect(function()
 	if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
 	local myHRP = myChar.HumanoidRootPart
 	local myPos, onScreen1 = camera:WorldToViewportPoint(myHRP.Position)
-	
+
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
 			local targetHRP = plr.Character.HumanoidRootPart
@@ -755,7 +755,7 @@ local removeLavaSwitch = createSwitch(otherLeftScroll, "Remove Lava", false, fun
 	if state then
 		local targets = {"CircleIsland", "GhostShipInterior"}
 		local foundLava = false
-		
+
 		for _, areaName in ipairs(targets) do
 			local area = workspace:WaitForChild("Map"):FindFirstChild(areaName)
 
@@ -769,7 +769,7 @@ local removeLavaSwitch = createSwitch(otherLeftScroll, "Remove Lava", false, fun
 				end
 			end
 		end
-		
+
 		if foundLava then
 			showNotification("Success!\nRemoved lava", Color3.fromRGB(255, 255, 255))
 		else
@@ -840,7 +840,7 @@ local function createDraggableButton(name, emoji, position, targetPos)
 		local hrp = char:WaitForChild("HumanoidRootPart")
 		hrp.CFrame = CFrame.new(targetPos)
 		moving =false
-		
+
 		for _, child in ipairs(buttonScroll:GetChildren()) do
 			if child:IsA("Frame") and child:FindFirstChild("SwitchBase") and child:FindFirstChildOfClass("TextLabel") then
 				if child:FindFirstChildOfClass("TextLabel").Text == "Move to Target" then
@@ -889,9 +889,9 @@ RunService.Heartbeat:Connect(function()
 end)
 -- BloxFruitsモードがOFFのときは灰色にする
 if  not bloxFruitsMode then
-	
+
 	local bloxfruitsGui ={removeLavaSwitch,tpSwitch}
-	
+
 	for i,switch in ipairs(bloxfruitsGui) do
 		switch.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- 灰色
 		switch.Active = false
@@ -1114,7 +1114,7 @@ local function teleportTo(position)
 				)
 			end
 		end)
-		
+
 		currentTween:Play()
 		currentTween.Completed:Connect(function()
 			if followConnection then
@@ -1211,7 +1211,10 @@ RunService.Heartbeat:Connect(function()
 			end
 
 			-- 通常追尾
-			teleportTo(targetPos)
+			if not lastDistance or math.abs(distance - lastDistance) > 5 then
+				-- ターゲットが一定以上動いたときだけTween更新
+				teleportTo(targetPos)
+			end
 			lastDistance = distance
 		end
 	else
