@@ -1211,10 +1211,7 @@ RunService.Heartbeat:Connect(function()
 			end
 
 			-- 通常追尾
-			if not lastDistance or math.abs(distance - lastDistance) > 5 then
-				-- ターゲットが一定以上動いたときだけTween更新
-				teleportTo(targetPos)
-			end
+			teleportTo(targetPos)
 			lastDistance = distance
 		end
 	else
