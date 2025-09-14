@@ -45,11 +45,11 @@ local function createFollowPlatform(startPos)
 		followPlatform:Destroy()
 	end
 
-	-- Tweenの基準になる透明パーツ
+	-- Tween対象になる透明パーツ
 	followPlatform = Instance.new("Part")
 	followPlatform.Size = Vector3.new(2, 1, 2)
-	followPlatform.Anchored = true
-	followPlatform.Transparency = 0
+	followPlatform.Anchored = false -- ★ ここをfalseにする
+	followPlatform.Transparency = 1 -- 完全透明にして邪魔にならないように
 	followPlatform.CanCollide = false
 	followPlatform.Position = startPos
 	followPlatform.Name = "FollowPlatform"
@@ -58,12 +58,16 @@ local function createFollowPlatform(startPos)
 	-- WeldConstraint で HRP をくっつける
 	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if hrp then
+		-- HRPの座標に合わせる
+		followPlatform.CFrame = hrp.CFrame 
+
 		local weld = Instance.new("WeldConstraint")
 		weld.Part0 = hrp
 		weld.Part1 = followPlatform
 		weld.Parent = hrp
 	end
 end
+
 
 local function destroyFollowPlatform()
 	if followPlatform then
