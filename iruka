@@ -1208,11 +1208,10 @@ RunService.Heartbeat:Connect(function()
 						return
 					end
 				end
-			end
-
-			-- 通常追尾
+			else
 			teleportTo(targetPos)
 			lastDistance = distance
+			end
 		end
 	else
 		destroyFollowPlatform()
