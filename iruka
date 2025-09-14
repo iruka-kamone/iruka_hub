@@ -40,17 +40,29 @@ local islands = {
 local pos1 = Vector3.new(-287, 306.5, 597.9)
 local pos2 = Vector3.new(938, 252.7, 32888)
 
-local function createFollowPlatform(position)
+local function createFollowPlatform(startPos)
 	if followPlatform then
 		followPlatform:Destroy()
 	end
+
+	-- Tweenの基準になる透明パーツ
 	followPlatform = Instance.new("Part")
-	followPlatform.Size = Vector3.new(4, 1, 4)
+	followPlatform.Size = Vector3.new(2, 1, 2)
 	followPlatform.Anchored = true
-	followPlatform.CanCollide = false
 	followPlatform.Transparency = 0
-	followPlatform.Position = position
+	followPlatform.CanCollide = false
+	followPlatform.Position = startPos
+	followPlatform.Name = "FollowPlatform"
 	followPlatform.Parent = workspace
+
+	-- WeldConstraint で HRP をくっつける
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = hrp
+		weld.Part1 = followPlatform
+		weld.Parent = hrp
+	end
 end
 
 local function destroyFollowPlatform()
@@ -265,7 +277,7 @@ statsGui.Parent = player:WaitForChild("PlayerGui")
 statsGui.Enabled =false
 
 local statsFrame = Instance.new("Frame",statsGui)
-statsFrame.Size = UDim2.new(0.35, 0, 0.12, 0)
+statsFrame.Size = UDim2.new(0, 320, 0, 30)
 statsFrame.Position = UDim2.new(0.03, 0, 0, 0)
 statsFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 statsFrame.BackgroundTransparency = 0.2
@@ -923,7 +935,7 @@ dropdownLabel.TextColor3 = Color3.new(1, 1, 1)
 dropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 lookDropdownFrame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton or input.UserInputType == Enum.UserInputType.Touch then
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		local index = table.find(lookParts, currentLookPart)
 		local nextIndex = index % #lookParts + 1
 		currentLookPart = lookParts[nextIndex]
@@ -1085,43 +1097,23 @@ local function teleportTo(position)
 		createFollowPlatform(hrp.Position - Vector3.new(0, 2.5, 0))
 	end
 
-	-- 共通の処理: Tween停止・接続解除
+	-- Tween停止
 	if currentTween then
 		currentTween:Cancel()
 		currentTween = nil
 	end
-	if followConnection then
-		followConnection:Disconnect()
-		followConnection = nil
-	end
 
 	if useTween then
-		-- Tweenで移動
+		-- TweenでfollowPlatformを移動
 		local distance = (position - followPlatform.Position).Magnitude
 		local time = distance / MOVE_SPEED
 
 		currentTween = TweenService:Create(
 			followPlatform,
-			TweenInfo.new(time, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+			TweenInfo.new(time, Enum.EasingStyle.Linear),
 			{Position = position}
 		)
-
-		followConnection = RunService.RenderStepped:Connect(function()
-			if followPlatform and followPlatform.Parent and hrp.Parent then
-				hrp.CFrame = CFrame.new(
-					followPlatform.Position + Vector3.new(0, 2.5, 0),
-					followPlatform.Position + followPlatform.CFrame.LookVector
-				)
-			end
-		end)
-		
 		currentTween:Play()
-		currentTween.Completed:Connect(function()
-			if followConnection then
-				followConnection:Disconnect()
-				followConnection = nil
-			end
-		end)
 	else
 		-- 瞬間移動(TP)
 		hrp.CFrame = CFrame.new(position + Vector3.new(0, 2.5, 0))
@@ -1164,10 +1156,8 @@ end)
 local lastDistance = nil  -- 前フレームの距離を記録
 
 RunService.Heartbeat:Connect(function()
-	if randomMode then
-		if randomTypeClose then
-			pickRandomTarget()
-		end
+	if randomMode and randomTypeClose then
+		pickRandomTarget()
 	end
 
 	if moving and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
@@ -1177,13 +1167,11 @@ RunService.Heartbeat:Connect(function()
 			local distance = (hrp.Position - targetPos).Magnitude
 
 			if bloxFruitsMode then
-				-- ターゲット基準で一番近い島を探す
 				local island, islandDist = getClosestIslandToTarget(targetPos)
 				if island then
 					local myDist = (hrp.Position - targetPos).Magnitude
-
-					-- 島の方が近ければ島にTPして追尾
 					if islandDist < myDist then
+						-- 島にワープ → その後Tweenで追尾
 						hrp.CFrame = CFrame.new(island)
 						destroyFollowPlatform()
 						teleportTo(targetPos)
@@ -1194,14 +1182,12 @@ RunService.Heartbeat:Connect(function()
 
 				if lastDistance and (distance - lastDistance) > 2000 then
 					if island and islandDist < (hrp.Position - targetPos).Magnitude then
-						-- 島が有効 → 島にTPして追尾継続
 						hrp.CFrame = CFrame.new(island)
 						destroyFollowPlatform()
 						teleportTo(targetPos)
 						lastDistance = distance
 						return
 					else
-						-- 島もダメなら追尾停止
 						destroyFollowPlatform()
 						moving = false
 						lastDistance = nil
@@ -1210,7 +1196,6 @@ RunService.Heartbeat:Connect(function()
 				end
 			end
 
-			-- 通常追尾
 			teleportTo(targetPos)
 			lastDistance = distance
 		end
