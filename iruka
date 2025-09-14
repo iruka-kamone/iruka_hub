@@ -1091,10 +1091,10 @@ local function teleportTo(position)
 		currentTween:Cancel()
 		currentTween = nil
 	end
-	if followConnection then
+	--[[if followConnection then
 		followConnection:Disconnect()
 		followConnection = nil
-	end
+	end]]--
 
 	if useTween then
 		-- Tweenで移動
@@ -1110,19 +1110,18 @@ local function teleportTo(position)
 		followConnection = RunService.RenderStepped:Connect(function()
 			if followPlatform and followPlatform.Parent and hrp.Parent then
 				hrp.CFrame = CFrame.new(
-					followPlatform.Position + Vector3.new(0, 2.5, 0),
-					followPlatform.Position + followPlatform.CFrame.LookVector
+					followPlatform.Position + Vector3.new(0, 2.5, 0)
 				)
 			end
 		end)
 
 		currentTween:Play()
-		currentTween.Completed:Connect(function()
+		--[[currentTween.Completed:Connect(function()
 			if followConnection then
 				followConnection:Disconnect()
 				followConnection = nil
 			end
-		end)
+		end)--]]
 	else
 		-- 瞬間移動(TP)
 		hrp.CFrame = CFrame.new(position + Vector3.new(0, 2.5, 0))
