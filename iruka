@@ -67,13 +67,25 @@ end
 
 local function destroyFollowPlatform()
 	if followPlatform then
+		-- HRP に付いてる WeldConstraint も削除
+		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			for _, weld in ipairs(hrp:GetChildren()) do
+				if weld:IsA("WeldConstraint") and weld.Part1 == followPlatform then
+					weld:Destroy()
+				end
+			end
+		end
+
 		followPlatform:Destroy()
 		followPlatform = nil
 	end
+
 	if followConnection then
 		followConnection:Disconnect()
 		followConnection = nil
 	end
+
 	if currentTween then
 		currentTween:Cancel()
 		currentTween = nil
