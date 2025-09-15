@@ -1,10 +1,10 @@
 
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
 local MOVE_SPEED = 300
 local camLockPart = "Head"
 
@@ -16,6 +16,7 @@ local bloxFruitsMode = false
 local selectedTarget = nil
 local moving = false
 local camLock = false
+local playerView =false
 local randomMode = false
 local sameTeamEnabled = false
 local randomTypeClose = true
@@ -527,7 +528,7 @@ end
 
 -- Refresh ボタン（普通のボタン）
 local refreshButton = Instance.new("TextButton", buttonScroll)
-refreshButton.Size = UDim2.new(1, -10, 0, 40)
+refreshButton.Size = UDim2.new(1, -10, 0, 30)
 refreshButton.BackgroundColor3 = Color3.fromRGB(36, 72, 107)
 refreshButton.TextColor3 = Color3.new(1, 1, 1)
 refreshButton.Text = "Refresh"
@@ -548,6 +549,9 @@ createSwitch(buttonScroll, "Tween Mode (TP/Tween)", true, function(state)
 end)
 createSwitch(buttonScroll, "Cam Lock", false, function(state)
 	camLock = state
+end)
+createSwitch(buttonScroll, "Player View", false, function(state)
+	playerView =state
 end)
 createSwitch(buttonScroll, "Random", false, function(state)
 	randomMode = state
@@ -778,6 +782,21 @@ local removeLavaSwitch = createSwitch(otherLeftScroll, "Remove Lava", false, fun
 		end
 	end
 end)
+
+local flyguiButton = Instance.new("TextButton", otherRightScroll)
+flyguiButton.Size = UDim2.new(1, -10, 0, 30)
+flyguiButton.BackgroundColor3 = Color3.fromRGB(36, 72, 107)
+flyguiButton.TextColor3 = Color3.new(1, 1, 1)
+flyguiButton.Text = "flyGui"
+flyguiButton.Font = Enum.Font.GothamBold
+flyguiButton.TextSize = 14
+local flyguiCorner = Instance.new("UICorner", flyguiButton)
+flyguiCorner.CornerRadius = UDim.new(0, 13)
+
+flyguiButton.MouseButton1Click:Connect(function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/iruka-kamone/iruka_hub/refs/heads/main/mendako"))()
+end)
+
 
 -- OtherFrame にボタン追加（createSwitchとかと同じノリ）
 local tpSwitch = createSwitch(otherLeftScroll, "TP Gui", false, function(state)
@@ -1142,9 +1161,17 @@ local function getClosestIslandToTarget(targetPos)
 end
 
 -- CamLock処理
+-- CamLock処理
 RunService.Heartbeat:Connect(function()
+	local cam = workspace.CurrentCamera
+	
+	if playerView and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("Humanoid") then
+		cam.CameraSubject = selectedTarget.Character:FindFirstChild("Humanoid")
+		return
+	end
+
+	
 	if camLock and selectedTarget and selectedTarget.Character then
-		local cam = workspace.CurrentCamera
 		local lookPos = nil
 
 		if camLockPart == "Head" and selectedTarget.Character:FindFirstChild("Head") then
@@ -1157,6 +1184,11 @@ RunService.Heartbeat:Connect(function()
 
 		if lookPos then
 			cam.CFrame = CFrame.new(cam.CFrame.Position, lookPos)
+		end
+	else
+		-- デフォルトは自分のキャラの頭に戻す
+		if Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("Head") then
+			cam.CameraSubject = Players.LocalPlayer.Character:FindFirstChild("Humanoid")
 		end
 	end
 end)
