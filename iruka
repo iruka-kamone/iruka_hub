@@ -574,7 +574,7 @@ local refreshCorner = Instance.new("UICorner", takeShip)
 refreshCorner.CornerRadius = UDim.new(0, 13)
 
 takeShip.MouseButton1Click:Connect(function()
-	if not selectedTarget then
+	if not selectedTarget and selectedTarget.Character then
 		return
 	end
 
@@ -590,7 +590,7 @@ takeShip.MouseButton1Click:Connect(function()
 					local offset = vehicleSeat.CFrame:ToObjectSpace(seat.CFrame)
 
 					-- Seat を target に置いたと仮定した VehicleSeat の位置
-					local newVehicleSeatCFrame = CFrame.new(selectedTarget.Position) * offset
+					local newVehicleSeatCFrame = CFrame.new(selectedTarget.Character.Position) * offset
 
 					-- LocalPlayer をその位置に移動
 					local char = player.Character
