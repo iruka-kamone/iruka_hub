@@ -574,7 +574,7 @@ local refreshCorner = Instance.new("UICorner", takeShip)
 refreshCorner.CornerRadius = UDim.new(0, 13)
 
 takeShip.MouseButton1Click:Connect(function()
-	if not selectedTarget and selectedTarget.Character then
+	if not selectedTarget or not selectedTarget.Character then
 		return
 	end
 
@@ -586,22 +586,23 @@ takeShip.MouseButton1Click:Connect(function()
 			if parent then
 				local seat = parent:FindFirstChildWhichIsA("Seat")
 				if seat then
-					-- VehicleSeat と Seat の相対オフセット
 					local offset = vehicleSeat.CFrame:ToObjectSpace(seat.CFrame)
 
-					-- Seat を target に置いたと仮定した VehicleSeat の位置
-					local newVehicleSeatCFrame = CFrame.new(selectedTarget.Character.HumanoidRootPart.Position) * offset
+					local hrp = selectedTarget.Character:FindFirstChild("HumanoidRootPart")
+					if hrp then
+						local newVehicleSeatCFrame = hrp.CFrame * offset
 
-					-- LocalPlayer をその位置に移動
-					local char = player.Character
-					if char and char:FindFirstChild("HumanoidRootPart") then
-						char.HumanoidRootPart.CFrame = newVehicleSeatCFrame
+						local char = player.Character
+						if char and char:FindFirstChild("HumanoidRootPart") then
+							char.HumanoidRootPart.CFrame = newVehicleSeatCFrame
+						end
 					end
 				end
 			end
 		end
 	end
 end)
+
 
 createSwitch(buttonScroll, "Move to Target", false, function(state)
 	moving = state
