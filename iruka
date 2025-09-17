@@ -590,7 +590,7 @@ takeShip.MouseButton1Click:Connect(function()
 
 					local hrp = selectedTarget.Character:FindFirstChild("HumanoidRootPart")
 					if hrp then
-						local newVehicleSeatCFrame = hrp.CFrame * offset
+						local newVehicleSeatCFrame = hrp.CFrame * -offset
 
 						local char = player.Character
 						if char and char:FindFirstChild("HumanoidRootPart") then
