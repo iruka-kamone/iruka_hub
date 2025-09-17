@@ -590,7 +590,7 @@ takeShip.MouseButton1Click:Connect(function()
 					local offset = vehicleSeat.CFrame:ToObjectSpace(seat.CFrame)
 
 					-- Seat を target に置いたと仮定した VehicleSeat の位置
-					local newVehicleSeatCFrame = CFrame.new(selectedTarget.Character.Position) * offset
+					local newVehicleSeatCFrame = CFrame.new(selectedTarget.Character.HumanoidRootPart.Position) * offset
 
 					-- LocalPlayer をその位置に移動
 					local char = player.Character
