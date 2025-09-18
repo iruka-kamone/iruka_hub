@@ -1007,7 +1007,7 @@ water.MouseButton1Click:Connect(function()
 
 		local hrp = char.HumanoidRootPart
 		-- 押したときのXZを保存
-		fixedXZ = Vector3.new(hrp.Position.X, 0, hrp.Position.Z)
+		fixedXZ = Vector3.new(hrp.Position.X, -10, hrp.Position.Z)
 
 		-- 固定開始
 		tpConnection = RunService.RenderStepped:Connect(function()
@@ -1060,7 +1060,7 @@ end)
 -- BloxFruitsモードがOFFのときは灰色にする
 if  not bloxFruitsMode then
 
-	local bloxfruitsGui ={takeShip,removeLavaSwitch}
+	local bloxfruitsGui ={takeShip,removeLavaSwitch,tpSwitch}
 
 	for i,switch in ipairs(bloxfruitsGui) do
 		if switch:FindFirstChild("SwitchBase") then
