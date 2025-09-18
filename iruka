@@ -457,6 +457,11 @@ local function updatePlayerList()
 	dropdownFrame.Visible = false  -- ← ここを追加
 end
 
+-- Blox Fruits Mode 自動判定 + 通知
+if game.PlaceId == 4442272183 then
+	bloxFruitsMode = true
+	showNotification("Success!\nBlox Fruits Mode ON", Color3.fromRGB(255, 255, 255))
+end
 
 dropdown.MouseButton1Click:Connect(function()
 	dropdownFrame.Visible = not dropdownFrame.Visible
@@ -574,7 +579,7 @@ local refreshCorner = Instance.new("UICorner", takeShip)
 refreshCorner.CornerRadius = UDim.new(0, 13)
 
 takeShip.MouseButton1Click:Connect(function()
-	if not selectedTarget or not selectedTarget.Character then
+	if not selectedTarget or not selectedTarget.Character and bloxFruitsMode then
 		return
 	end
 
@@ -813,11 +818,7 @@ createSwitch(espFrame, "ESP", false, toggleNameEsp)
 createSwitch(espFrame, "Box ESP V1", false, toggleBoxEspV1)
 createSwitch(espFrame, "Box ESP V2", false, toggleBoxEspV2)
 createSwitch(espFrame, "Tracer ESP", false, toggleTracer)
--- Blox Fruits Mode 自動判定 + 通知
-if game.PlaceId == 4442272183 then
-	bloxFruitsMode = true
-	showNotification("Success!\nBlox Fruits Mode ON", Color3.fromRGB(255, 255, 255))
-end
+
 -- remove Lava スイッチ（BloxFruitsモード専用）
 local removeLavaSwitch = createSwitch(otherRightScroll, "Remove Lava", false, function(state)
 	if state then
@@ -859,7 +860,6 @@ flyguiCorner.CornerRadius = UDim.new(0, 13)
 flyguiButton.MouseButton1Click:Connect(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/iruka-kamone/iruka_hub/refs/heads/main/mendako"))()
 end)
-
 
 -- OtherFrame にボタン追加（createSwitchとかと同じノリ）
 local tpSwitch = createSwitch(otherRightScroll, "TP Gui", false, function(state)
@@ -945,6 +945,93 @@ end
 createDraggableButton("Dolphin", "🐬", UDim2.new(0, 10, 0, 10), pos1)
 createDraggableButton("Anchor", "⚓", UDim2.new(0, 120, 0, 10), pos2)
 
+local water = Instance.new("TextButton")
+water.Name = "Water"
+water.Size = UDim2.new(0, 100, 0, 50)
+water.Position = UDim2.new(0,230,0,10)
+water.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+water.Text = "💧OFF"
+water.TextColor3 =Color3.new(1, 1, 1)
+water.TextScaled = true
+water.Parent = tpGui
+
+-- UI を動かせるようにする
+local dragToggle = false
+local dragInput, dragStart, startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	water.Position = UDim2.new(
+		startPos.X.Scale, startPos.X.Offset + delta.X,
+		startPos.Y.Scale, startPos.Y.Offset + delta.Y
+	)
+end
+
+water.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragToggle = true
+		dragStart = input.Position
+		startPos = water.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragToggle = false
+			end
+		end)
+	end
+end)
+
+water.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if input == dragInput and dragToggle then
+		update(input)
+	end
+end)
+
+--=== 機能 ===--
+local tpConnection = nil
+local tpEnabled = false
+local fixedXZ = nil
+
+water.MouseButton1Click:Connect(function()
+	tpEnabled = not tpEnabled
+
+	if tpEnabled then
+		-- キャラクターと座標を取得
+		local char = player.Character
+		if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+		local hrp = char.HumanoidRootPart
+		-- 押したときのXZを保存
+		fixedXZ = Vector3.new(hrp.Position.X, 0, hrp.Position.Z)
+
+		-- 固定開始
+		tpConnection = RunService.RenderStepped:Connect(function()
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				hrp.CFrame = CFrame.new(fixedXZ)
+			end
+		end)
+
+		water.Text = "💧ON"
+		water.TextColor3 =Color3.new(0.176471, 0.176471, 0.176471)
+		water.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	else
+		-- 固定解除
+		if tpConnection then
+			tpConnection:Disconnect()
+			tpConnection = nil
+		end
+
+		water.Text = "💧OFF"
+		water.TextColor3 =Color3.new(1, 1, 1)
+		water.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	end
+end)
+
 local statsSwitch = createSwitch(otherRightScroll, "Stats Gui", false, function(state)
 	local statsGui = player.PlayerGui:FindFirstChild("StatsGui")
 	if statsGui then
@@ -973,14 +1060,21 @@ end)
 -- BloxFruitsモードがOFFのときは灰色にする
 if  not bloxFruitsMode then
 
-	local bloxfruitsGui ={removeLavaSwitch,tpSwitch}
+	local bloxfruitsGui ={takeShip,removeLavaSwitch}
 
 	for i,switch in ipairs(bloxfruitsGui) do
-		switch.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- 灰色
-		switch.Active = false
-		switch.TextLabel.Text ="Bloxfruits only"
-		switch.TextLabel.TextTransparency =0.5
-		switch.SwitchBase.Visible =false
+		if switch:FindFirstChild("SwitchBase") then
+			switch.SwitchBase.Visible =false
+			switch.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- 灰色
+			switch.Active = false
+			switch.TextLabel.Text ="Bloxfruits only"
+			switch.TextLabel.TextTransparency =0.5
+		else 
+			switch.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- 灰色
+			switch.Active = false
+			switch.Text ="Bloxfruits only"
+			switch.TextTransparency =0.5
+		end
 	end
 end
 -- 🟢 Look Part ドロップダウン
