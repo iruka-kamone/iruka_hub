@@ -1017,7 +1017,7 @@ water.MouseButton1Click:Connect(function()
 		platform.Transparency = 0.5
 		platform.CanCollide = false
 		platform.Color = Color3.fromRGB(0, 200, 255)
-		platform.Position = Vector3.new(hrp.Position.X, -100, hrp.Position.Z)
+		platform.Position = Vector3.new(hrp.Position.X, 0, hrp.Position.Z)
 		platform.Name = "WaterPlatform"
 		platform.Parent = workspace
 
@@ -1026,7 +1026,7 @@ water.MouseButton1Click:Connect(function()
 		local speed = 30
 		local time = distance / speed -- ≒32.3秒
 		local tweenInfo = TweenInfo.new(time, Enum.EasingStyle.Linear)
-		local goal = { Position = Vector3.new(hrp.Position.X, -1000, hrp.Position.Z) }
+		local goal = { Position = Vector3.new(hrp.Position.X, -100, hrp.Position.Z) }
 		currentTween = TweenService:Create(platform, tweenInfo, goal)
 		currentTween:Play()
 
