@@ -1007,7 +1007,9 @@ water.MouseButton1Click:Connect(function()
 		-- 既にあるなら削除
 		local old = workspace:FindFirstChild("WaterPlatform")
 		if old then old:Destroy() end
-
+		
+		moving =false
+		
 		-- Part を作成
 		local platform = Instance.new("Part")
 		platform.Size = Vector3.new(4, 1, 4)
@@ -1015,12 +1017,12 @@ water.MouseButton1Click:Connect(function()
 		platform.Transparency = 0.5
 		platform.CanCollide = false
 		platform.Color = Color3.fromRGB(0, 200, 255)
-		platform.Position = Vector3.new(hrp.Position.X, -30, hrp.Position.Z)
+		platform.Position = Vector3.new(hrp.Position.X, -100, hrp.Position.Z)
 		platform.Name = "WaterPlatform"
 		platform.Parent = workspace
 
 		-- Tween 設定
-		local distance = math.abs(-1000 - (-30)) -- 970
+		local distance = math.abs(-1000 - (-100)) -- 970
 		local speed = 30
 		local time = distance / speed -- ≒32.3秒
 		local tweenInfo = TweenInfo.new(time, Enum.EasingStyle.Linear)
@@ -1040,6 +1042,21 @@ water.MouseButton1Click:Connect(function()
 		water.TextColor3 = Color3.new(0.176471, 0.176471, 0.176471)
 		water.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 
+		for _, child in ipairs(buttonScroll:GetChildren()) do
+			if child:IsA("Frame") and child:FindFirstChild("SwitchBase") and child:FindFirstChildOfClass("TextLabel") then
+				if child:FindFirstChildOfClass("TextLabel").Text == "Move to Target" then
+					local switchBase = child:FindFirstChild("SwitchBase")
+					if switchBase then
+						local handle = switchBase:FindFirstChildOfClass("Frame")
+						if handle then
+							handle:TweenPosition(UDim2.new(0, 2, 0.5, -10), "Out", "Quad", 0.2, true)
+							switchBase.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+						end
+					end
+				end
+			end
+		end
+
 	else
 		-- OFF：Tween 停止
 		if currentTween then
@@ -1052,11 +1069,18 @@ water.MouseButton1Click:Connect(function()
 			tpConnection:Disconnect()
 			tpConnection = nil
 		end
-
-		-- Part 削除
+		task.wait()
+		-- Part の位置を取得して削除
 		local platform = workspace:FindFirstChild("WaterPlatform")
 		if platform then
+			local finalPos = platform.Position
 			platform:Destroy()
+
+			-- プレイヤーをその地点の Y+100 に TP
+			local char = player.Character
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				char:MoveTo(Vector3.new(finalPos.X,100, finalPos.Z))
+			end
 		end
 
 		-- UI 更新
