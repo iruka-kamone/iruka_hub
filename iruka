@@ -1017,12 +1017,12 @@ water.MouseButton1Click:Connect(function()
 		platform.Transparency = 0.5
 		platform.CanCollide = false
 		platform.Color = Color3.fromRGB(0, 200, 255)
-		platform.Position = Vector3.new(hrp.Position.X, 0, hrp.Position.Z)
+		platform.Position = Vector3.new(hrp.Position.X, -10, hrp.Position.Z)
 		platform.Name = "WaterPlatform"
 		platform.Parent = workspace
 
 		-- Tween 設定
-		local distance = math.abs(-1000 - (-100)) -- 970
+		local distance = math.abs(-100 - (-10)) -- 970
 		local speed = 30
 		local time = distance / speed -- ≒32.3秒
 		local tweenInfo = TweenInfo.new(time, Enum.EasingStyle.Linear)
