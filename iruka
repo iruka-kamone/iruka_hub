@@ -1001,24 +1001,36 @@ water.MouseButton1Click:Connect(function()
 	tpEnabled = not tpEnabled
 
 	if tpEnabled then
-		-- キャラクターと座標を取得
 		local char = player.Character
 		if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-
 		local hrp = char.HumanoidRootPart
-		-- 押したときのXZを保存
-		fixedXZ = Vector3.new(hrp.Position.X, -50, hrp.Position.Z)
 
-		-- 固定開始
+		-- 既にあるなら削除して作り直し
+		local old = workspace:FindFirstChild("WaterPlatform")
+		if old then old:Destroy() end
+
+		-- ブロックを作成
+		local platform = Instance.new("Part")
+		platform.Size = Vector3.new(4, 1, 4)
+		platform.Anchored = true
+		platform.Transparency = 0.5
+		platform.CanCollide =false
+		platform.Color = Color3.fromRGB(0, 200, 255)
+		platform.Position = Vector3.new(hrp.Position.X, -50, hrp.Position.Z)
+		platform.Name = "WaterPlatform"
+		platform.Parent = workspace
+
+		-- 固定開始（RenderStepped）
 		tpConnection = RunService.RenderStepped:Connect(function()
 			if char and char:FindFirstChild("HumanoidRootPart") then
-				hrp.CFrame = CFrame.new(fixedXZ)
+				hrp.CFrame = CFrame.new(platform.Position + Vector3.new(0, 2.5, 0))
 			end
 		end)
 
 		water.Text = "💧ON"
-		water.TextColor3 =Color3.new(0.176471, 0.176471, 0.176471)
+		water.TextColor3 = Color3.new(0.176471, 0.176471, 0.176471)
 		water.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+
 	else
 		-- 固定解除
 		if tpConnection then
@@ -1026,18 +1038,18 @@ water.MouseButton1Click:Connect(function()
 			tpConnection = nil
 		end
 
+		-- ブロック削除
+		local platform = workspace:FindFirstChild("WaterPlatform")
+		if platform then
+			platform:Destroy()
+		end
+
 		water.Text = "💧OFF"
-		water.TextColor3 =Color3.new(1, 1, 1)
+		water.TextColor3 = Color3.new(1, 1, 1)
 		water.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 	end
 end)
 
-local statsSwitch = createSwitch(otherRightScroll, "Stats Gui", false, function(state)
-	local statsGui = player.PlayerGui:FindFirstChild("StatsGui")
-	if statsGui then
-		statsGui.Enabled = state
-	end
-end)
 
 RunService.Heartbeat:Connect(function()
 	frameCount += 1
@@ -1060,7 +1072,7 @@ end)
 -- BloxFruitsモードがOFFのときは灰色にする
 if  not bloxFruitsMode then
 
-	local bloxfruitsGui ={takeShip,removeLavaSwitch,tpSwitch}
+	local bloxfruitsGui ={takeShip,removeLavaSwitch}
 
 	for i,switch in ipairs(bloxfruitsGui) do
 		if switch:FindFirstChild("SwitchBase") then
@@ -1310,13 +1322,13 @@ end
 -- CamLock処理
 RunService.Heartbeat:Connect(function()
 	local cam = workspace.CurrentCamera
-	
+
 	if playerView and selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("Humanoid") then
 		cam.CameraSubject = selectedTarget.Character:FindFirstChild("Humanoid")
 		return
 	end
 
-	
+
 	if camLock and selectedTarget and selectedTarget.Character then
 		local lookPos = nil
 
