@@ -1023,7 +1023,7 @@ water.MouseButton1Click:Connect(function()
 
 		-- Tween 設定
 		local distance = math.abs(-100 - (-10)) -- 970
-		local speed = 30
+		local speed = 300
 		local time = distance / speed -- ≒32.3秒
 		local tweenInfo = TweenInfo.new(time, Enum.EasingStyle.Linear)
 		local goal = { Position = Vector3.new(hrp.Position.X, -100, hrp.Position.Z) }
