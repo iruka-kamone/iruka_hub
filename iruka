@@ -1022,11 +1022,11 @@ water.MouseButton1Click:Connect(function()
 		platform.Parent = workspace
 
 		-- Tween 設定
-		local distance = math.abs(-1000 - (-30)) -- 970
-		local speed = 300
+		local distance = math.abs(-100 - (-30)) -- 970
+		local speed = 100
 		local time = distance / speed -- ≒32.3秒
 		local tweenInfo = TweenInfo.new(time, Enum.EasingStyle.Linear)
-		local goal = { Position = Vector3.new(hrp.Position.X, -1000, hrp.Position.Z) }
+		local goal = { Position = Vector3.new(hrp.Position.X, -100, hrp.Position.Z) }
 		currentTween = TweenService:Create(platform, tweenInfo, goal)
 		currentTween:Play()
 
