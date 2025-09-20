@@ -992,10 +992,9 @@ game:GetService("UserInputService").InputChanged:Connect(function(input)
 	end
 end)
 
---=== 機能 ===--
 local tpConnection = nil
 local tpEnabled = false
-local fixedXZ = nil
+local currentTween = nil
 
 water.MouseButton1Click:Connect(function()
 	tpEnabled = not tpEnabled
@@ -1005,51 +1004,74 @@ water.MouseButton1Click:Connect(function()
 		if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 		local hrp = char.HumanoidRootPart
 
-		-- 既にあるなら削除して作り直し
+		-- 既にあるなら削除
 		local old = workspace:FindFirstChild("WaterPlatform")
 		if old then old:Destroy() end
 
-		-- ブロックを作成
+		-- Part を作成
 		local platform = Instance.new("Part")
 		platform.Size = Vector3.new(4, 1, 4)
 		platform.Anchored = true
 		platform.Transparency = 0.5
-		platform.CanCollide =false
+		platform.CanCollide = false
 		platform.Color = Color3.fromRGB(0, 200, 255)
-		platform.Position = Vector3.new(hrp.Position.X, -50, hrp.Position.Z)
+		platform.Position = Vector3.new(hrp.Position.X, -30, hrp.Position.Z)
 		platform.Name = "WaterPlatform"
 		platform.Parent = workspace
 
-		-- 固定開始（RenderStepped）
+		-- Tween 設定
+		local distance = math.abs(-1000 - (-30)) -- 970
+		local speed = 30
+		local time = distance / speed -- ≒32.3秒
+		local tweenInfo = TweenInfo.new(time, Enum.EasingStyle.Linear)
+		local goal = { Position = Vector3.new(hrp.Position.X, -1000, hrp.Position.Z) }
+		currentTween = TweenService:Create(platform, tweenInfo, goal)
+		currentTween:Play()
+
+		-- 常に TP し続ける
 		tpConnection = RunService.RenderStepped:Connect(function()
 			if char and char:FindFirstChild("HumanoidRootPart") then
 				hrp.CFrame = CFrame.new(platform.Position + Vector3.new(0, 2.5, 0))
 			end
 		end)
 
+		-- UI 更新
 		water.Text = "💧ON"
 		water.TextColor3 = Color3.new(0.176471, 0.176471, 0.176471)
 		water.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 
 	else
-		-- 固定解除
+		-- OFF：Tween 停止
+		if currentTween then
+			currentTween:Cancel()
+			currentTween = nil
+		end
+
+		-- TP 停止
 		if tpConnection then
 			tpConnection:Disconnect()
 			tpConnection = nil
 		end
 
-		-- ブロック削除
+		-- Part 削除
 		local platform = workspace:FindFirstChild("WaterPlatform")
 		if platform then
 			platform:Destroy()
 		end
 
+		-- UI 更新
 		water.Text = "💧OFF"
 		water.TextColor3 = Color3.new(1, 1, 1)
 		water.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 	end
 end)
 
+local statsSwitch = createSwitch(otherRightScroll, "Stats Gui", false, function(state)
+	local statsGui = player.PlayerGui:FindFirstChild("StatsGui")
+	if statsGui then
+		statsGui.Enabled = state
+	end
+end)
 
 RunService.Heartbeat:Connect(function()
 	frameCount += 1
