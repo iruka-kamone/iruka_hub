@@ -2,8 +2,6 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 
-local PASSWORD = "irukakawaii"  -- パスワード
-
 -- GUI作成
 local passwordGui = Instance.new("ScreenGui", PlayerGui)
 passwordGui.Name = "PasswordGui"
@@ -47,6 +45,7 @@ errorLabel.TextSize = 14
 errorLabel.TextWrapped = true
 errorLabel.TextXAlignment = Enum.TextXAlignment.Center
 
+-- メインスクリプト読み込み
 local function loadMainScript()
 	local func, err = loadstring(game:HttpGet("https://raw.githubusercontent.com/iruka-kamone/iruka_hub/refs/heads/main/iruka"))()
 	if func then
@@ -56,14 +55,17 @@ local function loadMainScript()
 	end
 end
 
+-- パスワード判定
 local function checkPassword()
-	if inputBox.Text == PASSWORD then
+	if inputBox.Text == "kawaiiiruka" then
 		passwordGui:Destroy()
 		loadMainScript()
+	elseif inputBox.Text == "irukakawaii" then
+		player:Kick("You have been kicked by this experience or its\nmoderators.Moderation message:\n\nYou have been permanently banned for cheating.")
 	else
 		errorLabel.Text = "not valid"
 	end
-end
+end 
 
 submitButton.MouseButton1Click:Connect(checkPassword)
 inputBox.FocusLost:Connect(function(enterPressed)
@@ -71,3 +73,4 @@ inputBox.FocusLost:Connect(function(enterPressed)
 		checkPassword()
 	end
 end)
+
