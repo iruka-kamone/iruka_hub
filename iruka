@@ -436,7 +436,7 @@ elseif placeId == 7449423635 then
 		Vector3.new(28286, 14897, 103),
 	}
 	pos1 = Vector3.new(-12471, 374, -7554)
-	pos2 = Vector3.new(5369,25,-497)
+	pos2 = Vector3.new(-12560,460,-7482)
 end
 
 local function updatePlayerList()
