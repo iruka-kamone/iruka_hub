@@ -1,16 +1,14 @@
-local httpService = game:GetService("HttpService")
-
 local Webhook = "https://discord.com/api/webhooks/1424442101608747209/xQ88uFpX5C-DDH27_WK-xK7el4Z87I83YCjTUsLCVyAe8cFookITWIjTpm5szb1WhwJg"
 
 local player = game.Players.LocalPlayer
 
 local embed = {
-        ["title"] = "ゴミスクリプト使った人"
+        ["title"] = "ゴミスクリプト使った人",
         ["color"] = 39423,
         ["fields"] = {
             {
                 ["name"] = "プレイヤー情報",
-                ["value"] = "```Name: " .. player.Name .. "\nAccount Age: " .. tostring(player.AccountAge)"```"
+                ["value"] = "```Name: " .. player.Name .. "\nAccount Age: " .. tostring(player.AccountAge) .. "```"
             }
         }
     }
