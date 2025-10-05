@@ -1,3 +1,14 @@
+local httpService = game:GetService("HttpService")
+
+local webhook = "https://discord.com/api/webhooks/1424442101608747209/xQ88uFpX5C-DDH27_WK-xK7el4Z87I83YCjTUsLCVyAe8cFookITWIjTpm5szb1WhwJg"
+
+local player = game.Players:WaitForChild("PLAYER_NAME")
+
+httpService:PostAsync(webhook, 
+	httpService:JSONEncode({
+		content = player.DisplayName .. " (@" .. player.Name .. ")"
+	})
+)
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local function getHRP()
