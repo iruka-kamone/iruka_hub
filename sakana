@@ -1,0 +1,12 @@
+local player = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local function getHRP()
+    local char = player.Character or player.CharacterAdded:Wait()
+    return char:WaitForChild("HumanoidRootPart")
+end
+local hrp = getHRP()
+local clearPart = workspace:WaitForChild("clearpart"):WaitForChild("clear")
+RunService.RenderStepped:Connect(function()
+    firetouchinterest(clearPart, hrp, 0)
+    firetouchinterest(clearPart, hrp, 1)
+end)
