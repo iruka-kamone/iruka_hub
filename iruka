@@ -26,6 +26,8 @@ local tracerEnabled = false
 local useTween = true
 local nearestEnemyPos = nil
 local aimbotSkill =false
+local hitboxSize =Vector3.new(62,62,62)
+local hitboxVisible = false
 
 local lastTime = tick()
 local frameCount = 0
@@ -903,7 +905,33 @@ createSwitch(espFrame, "Box ESP V1", false, toggleBoxEspV1)
 createSwitch(espFrame, "Box ESP V2", false, toggleBoxEspV2)
 createSwitch(espFrame, "Tracer ESP", false, toggleTracer)
 
--- remove Lava スイッチ（BloxFruitsモード専用）
+local function setHitbox()
+	for _,player in pairs(Players:GetPlayers()) do
+		if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			player.Character.HumanoidRootPart.Size = hitboxSize
+			player.Character.HumanoidRootPart.Transparency = hitboxVisible and 0.9 or 1
+			player.Character.HumanoidRootPart.BrickColor = BrickColor.new("Pastel blue-green")
+			player.Character.HumanoidRootPart.Material = Enum.Material.Neon
+			player.Character.HumanoidRootPart.CanCollide = false
+		end
+	end
+end
+
+local setHitboxSwitch = createSwitch(otherRightScroll,"Hitbox Enabled",false,function(state)
+	if state then
+		hitboxSize =Vector3.new(62,62,62)
+		setHitbox()
+	else
+		hitboxSize =Vector3.new(2,2,1)
+		setHitbox()
+	end
+end)
+
+local hitboxVisibleSwitch = createSwitch(otherRightScroll,"Hitbox Visible",false,function(state)
+	hitboxVisible = state
+	setHitbox()
+end)
+
 local removeLavaSwitch = createSwitch(bloxfruitsRightScroll, "Remove Lava", false, function(state)
 	if state then
 		local targets = {"CircleIsland", "GhostShipInterior"}
@@ -1252,7 +1280,7 @@ local statsSwitch = createSwitch(otherRightScroll, "Stats Gui", false, function(
 	statsLabel.Text = string.format("FPS: %d | Ping: %dms | POS: (%.1f, %.1f, %.1f)", fps, ping, pos.X, pos.Y, pos.Z)
 end)
 
-local fightingShopButton = createButton(bloxfruitsRightScroll, "Fightings Shop Gui").MouseButton1Click:Connect(function()
+local fightingShopButton = createButton(bloxfruitsLeftScroll, "Fightings Shop Gui").MouseButton1Click:Connect(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/iruka-kamone/iruka_hub/refs/heads/main/sirokuma"))()
 end)
 
