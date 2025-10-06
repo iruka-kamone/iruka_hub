@@ -910,7 +910,7 @@ local function setHitbox()
 		if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 			player.Character.HumanoidRootPart.Size = hitboxSize
 			player.Character.HumanoidRootPart.Transparency = hitboxVisible and 0.9 or 1
-			player.Character.HumanoidRootPart.BrickColor = BrickColor.new("Pastel blue-green")
+			player.Character.HumanoidRootPart.BrickColor = BrickColor.new("Really blue")
 			player.Character.HumanoidRootPart.Material = Enum.Material.Neon
 			player.Character.HumanoidRootPart.CanCollide = false
 		end
