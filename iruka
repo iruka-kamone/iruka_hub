@@ -5,24 +5,27 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local MOVE_SPEED = 300
 local camLockPart = "Head"
+local camera =workspace.Camera
 
 local followPlatform = nil
 local currentTween = nil
 local followConnection = nil
-local ignoreWalls = true
+local wallCheck = true
 local bloxFruitsMode = false
 local selectedTarget = nil
 local moving = false
 local camLock = false
 local playerView =false
 local randomMode = false
-local sameTeamEnabled = false
-local randomTypeClose = true
+local teamCheck = false
+local randomTypeNear = true
 local espEnabled = false
 local boxEspV1Enabled = false
 local boxEspV2Enabled = false
 local tracerEnabled = false
 local useTween = true
+local nearestEnemyPos = nil
+local aimbotSkill =false
 
 local lastTime = tick()
 local frameCount = 0
@@ -59,13 +62,11 @@ local function destroyFollowPlatform()
 	end
 end
 
--- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FollowGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- メインフレーム
 local mainFrame = Instance.new("Frame", screenGui)
 mainFrame.Size = UDim2.new(0, 450, 0, 300)
 mainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
@@ -78,7 +79,6 @@ mainFrame.Draggable = true
 local mainCorner = Instance.new("UICorner", mainFrame)
 mainCorner.CornerRadius = UDim.new(0, 20)
 
--- タイトルバー
 local titleBar = Instance.new("Frame", mainFrame)
 titleBar.Size = UDim2.new(1, 0, 0, 35)
 titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -106,13 +106,12 @@ closeButton.TextSize = 22
 local closeCorner = Instance.new("UICorner", closeButton)
 closeCorner.CornerRadius = UDim.new(1, 0)
 
--- 右列フレーム（スクロール可能ボタン群 + スイッチ群）
-local rightFrame = Instance.new("Frame", mainFrame)
-rightFrame.Size = UDim2.new(0, 250, 1, -35)
-rightFrame.Position = UDim2.new(0, 180, 0, 35)
-rightFrame.BackgroundTransparency = 1
+local mainRightFrame = Instance.new("Frame", mainFrame)
+mainRightFrame.Size = UDim2.new(0, 250, 1, -35)
+mainRightFrame.Position = UDim2.new(0, 180, 0, 35)
+mainRightFrame.BackgroundTransparency = 1
 
-local buttonScroll = Instance.new("ScrollingFrame", rightFrame)
+local buttonScroll = Instance.new("ScrollingFrame", mainRightFrame)
 buttonScroll.Size = UDim2.new(1, 0, 1, 0)
 buttonScroll.BackgroundTransparency = 1
 buttonScroll.ScrollBarThickness = 6
@@ -124,19 +123,17 @@ buttonLayout.Padding = UDim.new(0, 6)
 
 local padding = Instance.new("UIPadding")
 padding.Parent = buttonScroll
-padding.PaddingTop = UDim.new(0, 10)    -- ← 一番上を10ピクセル空ける
-padding.PaddingBottom = UDim.new(0, 5) -- 下の余白（お好み）
-padding.PaddingLeft = UDim.new(0, 5)   -- 左の余白
-padding.PaddingRight = UDim.new(0, 5)  -- 右の余白
+padding.PaddingTop = UDim.new(0, 10)    
+padding.PaddingBottom = UDim.new(0, 5) 
+padding.PaddingLeft = UDim.new(0, 5) 
+padding.PaddingRight = UDim.new(0, 5) 
 
--- 左列フレーム（Player選択 + Speed）
-local leftFrame = Instance.new("Frame", mainFrame)
-leftFrame.Size = UDim2.new(0, 180, 1, -35)
-leftFrame.Position = UDim2.new(0, 0, 0, 35)
-leftFrame.BackgroundTransparency = 1
+local mainLeftFrame = Instance.new("Frame", mainFrame)
+mainLeftFrame.Size = UDim2.new(0, 180, 1, -35)
+mainLeftFrame.Position = UDim2.new(0, 0, 0, 35)
+mainLeftFrame.BackgroundTransparency = 1
 
--- Player ドロップダウン
-local dropdown = Instance.new("TextButton", leftFrame)
+local dropdown = Instance.new("TextButton", mainLeftFrame)
 dropdown.Size = UDim2.new(0, 160, 0, 30)
 dropdown.Position = UDim2.new(0, 10, 0, 10)
 dropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -145,7 +142,7 @@ dropdown.Text = "Select Player"
 dropdown.Font = Enum.Font.GothamBold
 dropdown.TextSize = 14
 
-local dropdownFrame = Instance.new("ScrollingFrame", leftFrame)
+local dropdownFrame = Instance.new("ScrollingFrame", mainLeftFrame)
 dropdownFrame.Size = UDim2.new(0, 160, 0, 120)
 dropdownFrame.Position = UDim2.new(0, 10, 0, 40)
 dropdownFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -158,7 +155,6 @@ local uiListLayout = Instance.new("UIListLayout", dropdownFrame)
 uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 uiListLayout.Padding = UDim.new(0, 4)
 
--- Home/ESP タブ
 local tabFrame = Instance.new("Frame", titleBar)
 tabFrame.Position = UDim2.new(0, 120, 0, 2)
 tabFrame.Size = UDim2.new(0, 80, 1, -4)
@@ -210,10 +206,9 @@ otherRightFrame.Position = UDim2.new(0, 180, 0, 35)
 otherRightFrame.BackgroundTransparency = 1
 otherRightFrame.Visible = false
 
--- Other タブボタン作成
 local otherButton = Instance.new("TextButton", tabFrame)
 otherButton.Size = UDim2.new(0.5, -2, 1, -4)
-otherButton.Position = UDim2.new(1, 2, 0, 2)  -- Home と ESP の右に配置
+otherButton.Position = UDim2.new(1, 4, 0, 2) 
 otherButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 otherButton.TextColor3 = Color3.new(1,1,1)
 otherButton.Text = "Other"
@@ -242,6 +237,51 @@ otherRightScroll.ClipsDescendants = true
 local otherRightLayout = Instance.new("UIListLayout", otherRightScroll)
 otherRightLayout.SortOrder = Enum.SortOrder.LayoutOrder
 otherRightLayout.Padding = UDim.new(0, 6)
+
+local bloxfruitsLeftFrame = Instance.new("Frame", mainFrame)
+bloxfruitsLeftFrame.Size = UDim2.new(0, 180, 1, -35)
+bloxfruitsLeftFrame.Position = UDim2.new(0, 0, 0, 35)
+bloxfruitsLeftFrame.BackgroundTransparency = 1
+bloxfruitsLeftFrame.Visible = false
+
+local bloxfruitsRightFrame = Instance.new("Frame", mainFrame)
+bloxfruitsRightFrame.Size = UDim2.new(0, 250, 1, -35)
+bloxfruitsRightFrame.Position = UDim2.new(0, 180, 0, 35)
+bloxfruitsRightFrame.BackgroundTransparency = 1
+bloxfruitsRightFrame.Visible = false
+
+local bloxfruitsButton = Instance.new("TextButton", tabFrame)
+bloxfruitsButton.Size = UDim2.new(0.5, -2, 1, -4)
+bloxfruitsButton.Position = UDim2.new(1.5, 6, 0, 2)
+bloxfruitsButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+bloxfruitsButton.TextColor3 = Color3.new(1,1,1)
+bloxfruitsButton.Text = "BF"
+bloxfruitsButton.Font = Enum.Font.GothamBold
+bloxfruitsButton.TextSize = 14
+
+local bloxfruitsCorner = Instance.new("UICorner", bloxfruitsButton)
+bloxfruitsCorner.CornerRadius = UDim.new(0, 6)
+
+local bloxfruitsLeftScroll = Instance.new("ScrollingFrame", bloxfruitsLeftFrame)
+bloxfruitsLeftScroll.Size = UDim2.new(1, 0, 1, 0)
+bloxfruitsLeftScroll.BackgroundTransparency = 1
+bloxfruitsLeftScroll.ScrollBarThickness = 6
+bloxfruitsLeftScroll.ClipsDescendants = true
+
+local bloxfruitsLeftLayout = Instance.new("UIListLayout", bloxfruitsLeftScroll)
+bloxfruitsLeftLayout.SortOrder = Enum.SortOrder.LayoutOrder
+bloxfruitsLeftLayout.Padding = UDim.new(0, 6)
+
+local bloxfruitsRightScroll = Instance.new("ScrollingFrame", bloxfruitsRightFrame)
+bloxfruitsRightScroll.Size = UDim2.new(1, 0, 1, 0)
+bloxfruitsRightScroll.BackgroundTransparency = 1
+bloxfruitsRightScroll.ScrollBarThickness = 6
+bloxfruitsRightScroll.ClipsDescendants = true
+
+local bloxfruitsRightLayout = Instance.new("UIListLayout", bloxfruitsRightScroll)
+bloxfruitsRightLayout.SortOrder = Enum.SortOrder.LayoutOrder
+bloxfruitsRightLayout.Padding = UDim.new(0, 6)
+
 
 local tpGui = Instance.new("ScreenGui")
 tpGui.Name = "TPGui"
@@ -275,24 +315,38 @@ statsLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 local function switchPage(page)
 	if page == "Home" then
-		leftFrame.Visible = true
-		rightFrame.Visible = true
+		mainLeftFrame.Visible = true
+		mainRightFrame.Visible = true
 		espFrame.Visible = false
-		if otherLeftFrame then otherLeftFrame.Visible = false end
-		if otherRightFrame then otherRightFrame.Visible = false end
+		otherLeftFrame.Visible = false 
+		otherRightFrame.Visible = false
+		bloxfruitsLeftFrame.Visible = false
+		bloxfruitsRightFrame.Visible = false
 	elseif page == "ESP" then
-		leftFrame.Visible = false
-		rightFrame.Visible = false
+		mainLeftFrame.Visible = false
+		mainRightFrame.Visible = false
 		espFrame.Visible = true
-		if otherLeftFrame then otherLeftFrame.Visible = false end
-		if otherRightFrame then otherRightFrame.Visible = false end
+		otherLeftFrame.Visible = false
+		otherRightFrame.Visible = false
+		bloxfruitsLeftFrame.Visible = false
+		bloxfruitsRightFrame.Visible = false
 	elseif page == "Other" then
-		leftFrame.Visible = false
-		rightFrame.Visible = false
+		mainLeftFrame.Visible = false
+		mainRightFrame.Visible = false
 		espFrame.Visible = false
-		if otherLeftFrame then otherLeftFrame.Visible = true end
-		if otherRightFrame then otherRightFrame.Visible = true end
-	end
+		otherLeftFrame.Visible = true
+		otherRightFrame.Visible = true
+		bloxfruitsLeftFrame.Visible = false
+		bloxfruitsRightFrame.Visible = false
+	elseif page == "Bloxfruits" then
+		mainLeftFrame.Visible = false
+		mainRightFrame.Visible = false
+		espFrame.Visible = false
+		otherLeftFrame.Visible = false
+		otherRightFrame.Visible = false
+		bloxfruitsLeftFrame.Visible = true
+		bloxfruitsRightFrame.Visible = true
+	end 
 end
 
 homeButton.MouseButton1Click:Connect(function()
@@ -307,10 +361,14 @@ otherButton.MouseButton1Click:Connect(function()
 	switchPage("Other")
 end)
 
+bloxfruitsButton.MouseButton1Click:Connect(function()
+	switchPage("Bloxfruits")
+end)
+
 switchPage("Home")
 
 -- Speed入力
-local speedLabel = Instance.new("TextLabel", leftFrame)
+local speedLabel = Instance.new("TextLabel", mainLeftFrame)
 speedLabel.Size = UDim2.new(0, 80, 0, 30)
 speedLabel.Position = UDim2.new(0, 10, 0, 180)
 speedLabel.BackgroundTransparency = 1
@@ -320,7 +378,7 @@ speedLabel.Font = Enum.Font.GothamBold
 speedLabel.TextSize = 14
 speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-local speedBox = Instance.new("TextBox", leftFrame)
+local speedBox = Instance.new("TextBox", mainLeftFrame)
 speedBox.Size = UDim2.new(0, 80, 0, 30)
 speedBox.Position = UDim2.new(0, 60, 0, 180)
 speedBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
@@ -429,7 +487,7 @@ elseif placeId == 7449423635 then
 	showNotification("Success!\nBlox Fruits Mode ON(3rd)", Color3.fromRGB(255, 255, 255))
 	islands = {
 		Vector3.new(-12471, 374, -7554),
-	 	Vector3.new(5659, 1013, -341),
+		Vector3.new(5659, 1013, -341),
 		Vector3.new(-5056, 315, -3180),
 		Vector3.new(-12001, 332, -8861),
 		Vector3.new(5319, 23, -93),
@@ -550,18 +608,23 @@ local function createSwitch(parent, text, default, callback)
 
 end
 
--- Refresh ボタン（普通のボタン）
-local refreshButton = Instance.new("TextButton", buttonScroll)
-refreshButton.Size = UDim2.new(1, -10, 0, 30)
-refreshButton.BackgroundColor3 = Color3.fromRGB(0, 36, 195)
-refreshButton.TextColor3 = Color3.new(1, 1, 1)
-refreshButton.Text = "Refresh"
-refreshButton.Font = Enum.Font.GothamBold
-refreshButton.TextSize = 14
-local refreshCorner = Instance.new("UICorner", refreshButton)
-refreshCorner.CornerRadius = UDim.new(0, 13)
+local function createButton(parent, text)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, -10, 0, 30)
+	button.BackgroundColor3 = Color3.fromRGB(0, 36, 195)
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Text = text
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 14
+	button.Parent = parent
 
-refreshButton.MouseButton1Click:Connect(function()
+	local corner = Instance.new("UICorner", button)
+	corner.CornerRadius = UDim.new(0, 13)
+	
+	return button
+end
+
+local refreshButton =createButton(buttonScroll,"Refresh").MouseButton1Click:Connect(function()
 	updatePlayerList()
 end)
 
@@ -642,17 +705,17 @@ end)
 createSwitch(buttonScroll, "Player View", false, function(state)
 	playerView =state
 end)
-createSwitch(buttonScroll, "Random", false, function(state)
+createSwitch(buttonScroll, "Random Target", false, function(state)
 	randomMode = state
 end)
-createSwitch(buttonScroll, "Same Team", false, function(state)
-	sameTeamEnabled = state
+createSwitch(buttonScroll, "Team Check", false, function(state)
+	teamCheck = state
 end)
-createSwitch(buttonScroll, "Random Type (Close/Full)", true, function(state)
-	randomTypeClose = state
+createSwitch(buttonScroll, "Random Type (Full/Near)", true, function(state)
+	randomTypeNear = state
 end)
-createSwitch(buttonScroll, "Ignore Walls", true, function(state)
-	ignoreWalls = state
+createSwitch(buttonScroll, "Wall Check", false, function(state)
+	wallCheck = state
 end)
 
 local function addNameEsp(plr)
@@ -841,7 +904,7 @@ createSwitch(espFrame, "Box ESP V2", false, toggleBoxEspV2)
 createSwitch(espFrame, "Tracer ESP", false, toggleTracer)
 
 -- remove Lava スイッチ（BloxFruitsモード専用）
-local removeLavaSwitch = createSwitch(otherRightScroll, "Remove Lava", false, function(state)
+local removeLavaSwitch = createSwitch(bloxfruitsRightScroll, "Remove Lava", false, function(state)
 	if state then
 		local targets = {"CircleIsland", "GhostShipInterior"}
 		local foundLava = false
@@ -868,22 +931,12 @@ local removeLavaSwitch = createSwitch(otherRightScroll, "Remove Lava", false, fu
 	end
 end)
 
-local flyguiButton = Instance.new("TextButton", otherLeftScroll)
-flyguiButton.Size = UDim2.new(1, -10, 0, 30)
-flyguiButton.BackgroundColor3 = Color3.fromRGB(0, 36, 195)
-flyguiButton.TextColor3 = Color3.new(1, 1, 1)
-flyguiButton.Text = "flyGui"
-flyguiButton.Font = Enum.Font.GothamBold
-flyguiButton.TextSize = 14
-local flyguiCorner = Instance.new("UICorner", flyguiButton)
-flyguiCorner.CornerRadius = UDim.new(0, 13)
-
-flyguiButton.MouseButton1Click:Connect(function()
+local flyguiButton =createButton(otherLeftScroll,"Fly Gui").MouseButton1Click:Connect(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/iruka-kamone/iruka_hub/refs/heads/main/mendako"))()
 end)
 
 -- OtherFrame にボタン追加（createSwitchとかと同じノリ）
-local tpSwitch = createSwitch(otherRightScroll, "TP Gui", false, function(state)
+local tpSwitch = createSwitch(bloxfruitsRightScroll, "TP Gui", false, function(state)
 	local tpGui = player.PlayerGui:FindFirstChild("TPGui")
 	if tpGui then
 		tpGui.Enabled = state
@@ -1116,14 +1169,71 @@ water.MouseButton1Click:Connect(function()
 	end
 end)
 
-local statsSwitch = createSwitch(otherRightScroll, "Stats Gui", false, function(state)
-	local statsGui = player.PlayerGui:FindFirstChild("StatsGui")
-	if statsGui then
-		statsGui.Enabled = state
+local aimbotSwitch =createSwitch(bloxfruitsRightScroll,"Aimbot Enabled",false,function(state)
+	aimbotSkill = state
+end)
+
+spawn(function()
+	while task.wait() do
+		local char = player.Character
+		if not char or not char:FindFirstChild("HumanoidRootPart") then 
+			nearestEnemyPos = nil
+			return 
+		end
+
+		local myPos = char.HumanoidRootPart.Position
+		local nearestDist = math.huge
+		local nearestEnemy = nil
+
+		for _, other in ipairs(Players:GetPlayers()) do
+			if other ~= player then
+				local enemyChar = other.Character
+				if enemyChar and enemyChar:FindFirstChild("HumanoidRootPart") then
+					local dist = (enemyChar.HumanoidRootPart.Position - myPos).Magnitude
+					if dist < nearestDist then
+						nearestDist = dist
+						nearestEnemy = enemyChar
+					end
+				end
+			end
+		end
+
+		if nearestEnemy then
+			nearestEnemyPos = nearestEnemy.HumanoidRootPart.Position
+		else
+			nearestEnemyPos = nil
+		end
 	end
 end)
 
-RunService.Heartbeat:Connect(function()
+spawn(function()
+	local gg = getrawmetatable(game)
+	local old = gg.__namecall
+	setreadonly(gg,false)
+	gg.__namecall = newcclosure(function(...)
+		local method = getnamecallmethod()
+		local args = {...}
+		if tostring(method) == "FireServer" then
+			if tostring(args[1]) == "RemoteEvent" then
+				if tostring(args[2]) ~= "true" and tostring(args[2]) ~= "false" then
+					if aimbotSkill then
+						if type(args[2]) == "vector" then
+							args[2] = nearestEnemyPos
+						else
+							args[2] = CFrame.new(nearestEnemyPos)
+						end
+						return old(unpack(args))
+					end
+				end
+			end
+		end
+		return old(...)
+	end)
+end)
+
+local statsSwitch = createSwitch(otherRightScroll, "Stats Gui", false, function(state)
+	statsGui.Enabled = state
+
 	frameCount += 1
 	local now = tick()
 	if now - lastTime >= 1 then
@@ -1141,10 +1251,14 @@ RunService.Heartbeat:Connect(function()
 	-- 表示更新
 	statsLabel.Text = string.format("FPS: %d | Ping: %dms | POS: (%.1f, %.1f, %.1f)", fps, ping, pos.X, pos.Y, pos.Z)
 end)
--- BloxFruitsモードがOFFのときは灰色にする
+
+local fightingShopButton = createButton(bloxfruitsRightScroll, "Fightings Shop Gui").MouseButton1Click:Connect(function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/iruka-kamone/iruka_hub/refs/heads/main/sirokuma"))()
+end)
+
 if  not bloxFruitsMode then
 
-	local bloxfruitsGui ={takeShip,removeLavaSwitch,tpSwitch}
+	local bloxfruitsGui ={takeShip,removeLavaSwitch,tpSwitch,aimbotSwitch,fightingShopButton}
 
 	for i,switch in ipairs(bloxfruitsGui) do
 		if switch:FindFirstChild("SwitchBase") then
@@ -1241,12 +1355,10 @@ local function pickRandomTarget()
 	local candidates = {}
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
-			-- チーム判定
-			if not sameTeamEnabled and player.Team and plr.Team == player.Team then
-				-- Skip same team
+
+			if not teamCheck and player.Team and plr.Team == player.Team then
 			else
-				-- 壁を無視しない設定なら可視判定
-				if ignoreWalls or isVisible(plr) then
+				if not wallCheck or isVisible(plr) then
 					table.insert(candidates, plr)
 				end
 			end
@@ -1259,8 +1371,7 @@ local function pickRandomTarget()
 		return
 	end
 
-	if randomTypeClose then
-		-- Close mode: pick closest target, update every 0.1s
+	if randomTypeNear then
 		table.sort(candidates, function(a,b)
 			if not (a.Character and a.Character:FindFirstChild("HumanoidRootPart")) then return false end
 			if not (b.Character and b.Character:FindFirstChild("HumanoidRootPart")) then return true end
@@ -1271,9 +1382,8 @@ local function pickRandomTarget()
 		end)
 		selectedTarget = candidates[1]
 	else
-		-- Full mode: pick random target and stay until dead
 		if selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("Humanoid") and selectedTarget.Character.Humanoid.Health > 0 then
-			return -- keep current target alive in full mode
+			return
 		end
 		selectedTarget = candidates[math.random(1,#candidates)]
 	end
@@ -1427,7 +1537,7 @@ local lastDistance = nil  -- 前フレームの距離を記録
 
 RunService.Heartbeat:Connect(function()
 	if randomMode then
-		if randomTypeClose then
+		if randomTypeNear then
 			pickRandomTarget()
 		end
 	end
