@@ -1,182 +1,84 @@
-local main = Instance.new("ScreenGui")
-local Frame = Instance.new("Frame")
-local up = Instance.new("TextButton")
-local down = Instance.new("TextButton")
-local onof = Instance.new("TextButton")
-local TextLabel = Instance.new("TextLabel")
-local plus = Instance.new("TextButton")
-local speed = Instance.new("TextLabel")
-local mine = Instance.new("TextButton")
-local closebutton = Instance.new("TextButton")
-local mini = Instance.new("TextButton")
-local mini2 = Instance.new("TextButton")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 
--- GUI 本体
+-- GUI作成
+local main = Instance.new("ScreenGui")
 main.Name = "main"
-main.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+main.Parent = LocalPlayer:WaitForChild("PlayerGui")
 main.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 main.ResetOnSpawn = false
 
--- メインフレーム
-Frame.Parent = main
-Frame.BackgroundColor3 = Color3.fromRGB(255, 182, 193) -- パステルピンク
-Frame.BackgroundTransparency = 0.3
-Frame.Position = UDim2.new(0.100, 0, 0.38, 0)
+local Frame = Instance.new("Frame", main)
 Frame.Size = UDim2.new(0, 190, 0, 57)
+Frame.Position = UDim2.new(0.1, 0, 0.38, 0)
+Frame.Active = true
+Frame.Draggable = true
+Frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Frame.BackgroundTransparency = 0.1
 
 local function addUICorner(obj, radius)
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, radius)
+	corner.CornerRadius = UDim.new(0,radius)
 	corner.Parent = obj
 end
-
--- 角丸
 addUICorner(Frame, 10)
 
--- UPボタン
-up.Name = "up"
-up.Parent = Frame
-up.BackgroundColor3 = Color3.fromRGB(255, 182, 255) -- 淡いピンク
-up.BackgroundTransparency = 0.2
-up.Size = UDim2.new(0, 44, 0, 28)
-up.Font = Enum.Font.RobotoMono
-up.Text = "UP"
-up.TextColor3 = Color3.fromRGB(255,255,255)
-up.TextSize = 14
-addUICorner(up, 8)
+-- ボタン・ラベル作成関数
+local function createButton(name, parent, size, pos, text, bgColor, textColor, textSize)
+	local btn = Instance.new("TextButton")
+	btn.Name = name
+	btn.Parent = parent
+	btn.Size = size
+	btn.Position = pos
+	btn.Text = text
+	btn.Font = Enum.Font.RobotoMono
+	btn.TextColor3 = textColor
+	btn.TextSize = textSize
+	btn.BackgroundColor3 = bgColor
+	btn.BackgroundTransparency = 0.1
+	addUICorner(btn, 8)
+	return btn
+end
 
--- DOWNボタン
-down.Name = "down"
-down.Parent = Frame
-down.BackgroundColor3 = Color3.fromRGB(173, 216, 230) -- パステル水色
-down.BackgroundTransparency = 0.2
-down.Position = UDim2.new(0, 0, 0.49, 0)
-down.Size = UDim2.new(0, 44, 0, 28)
-down.Font = Enum.Font.RobotoMono
-down.Text = "DOWN"
-down.TextColor3 = Color3.fromRGB(255,255,255)
-down.TextSize = 14
-addUICorner(down, 8)
+local up = createButton("up", Frame, UDim2.new(0,44,0,28), UDim2.new(0,0,0,0), "UP", Color3.fromRGB(0,0,0), Color3.fromRGB(255,255,255), 14)
+local down = createButton("down", Frame, UDim2.new(0,44,0,28), UDim2.new(0,0,0.49,0), "DOWN", Color3.fromRGB(50,50,50), Color3.fromRGB(255,255,255), 14)
+local onof = createButton("onof", Frame, UDim2.new(0,56,0,28), UDim2.new(0.7,0,0.49,0), "fly", Color3.fromRGB(0,0,0), Color3.fromRGB(255,255,255), 14)
+local plus = createButton("plus", Frame, UDim2.new(0,45,0,28), UDim2.new(0.23,0,0,0), "+", Color3.fromRGB(50,50,50), Color3.fromRGB(255,255,255), 14)
+local mine = createButton("mine", Frame, UDim2.new(0,45,0,29), UDim2.new(0.23,0,0.49,0), "-", Color3.fromRGB(50,50,50), Color3.fromRGB(255,255,255), 14)
+local closebutton = createButton("Close", Frame, UDim2.new(0,45,0,28), UDim2.new(0,0,-1,27), "X", Color3.fromRGB(200,0,0), Color3.fromRGB(255,255,255), 30)
+local mini = createButton("minimize", Frame, UDim2.new(0,45,0,28), UDim2.new(0,44,-1,27), "-", Color3.fromRGB(0,0,0), Color3.fromRGB(255,255,255), 40)
+local mini2 = createButton("minimize2", Frame, UDim2.new(0,45,0,28), UDim2.new(0,44,-1,57), "+", Color3.fromRGB(50,50,50), Color3.fromRGB(255,255,255), 40)
+mini2.Visible = false
 
--- flyボタン
-onof.Name = "onof"
-onof.Parent = Frame
-onof.BackgroundColor3 = Color3.fromRGB(135, 206, 250) -- 淡い水色
-onof.BackgroundTransparency = 0.2
-onof.Position = UDim2.new(0.7, 0, 0.49, 0)
-onof.Size = UDim2.new(0, 56, 0, 28)
-onof.Font = Enum.Font.RobotoMono
-onof.Text = "fly"
-onof.TextColor3 = Color3.fromRGB(255,255,255)
-onof.TextSize = 14
-addUICorner(onof, 8)
-
--- TextLabel
-TextLabel.Parent = Frame
-TextLabel.BackgroundColor3 = Color3.fromRGB(255, 228, 225) -- 淡いピンク
-TextLabel.BackgroundTransparency = 0.3
-TextLabel.Position = UDim2.new(0.47, 0, 0, 0)
-TextLabel.Size = UDim2.new(0, 100, 0, 28)
-TextLabel.Font = Enum.Font.RobotoMono
+local TextLabel = Instance.new("TextLabel", Frame)
+TextLabel.Size = UDim2.new(0,100,0,28)
+TextLabel.Position = UDim2.new(0.47,0,0,0)
 TextLabel.Text = "iruka hub fly"
+TextLabel.Font = Enum.Font.RobotoMono
 TextLabel.TextColor3 = Color3.fromRGB(255,255,255)
 TextLabel.TextScaled = true
 TextLabel.TextWrapped = true
+TextLabel.BackgroundColor3 = Color3.fromRGB(20,20,20)
+TextLabel.BackgroundTransparency = 0.1
 addUICorner(TextLabel, 8)
 
--- + ボタン
-plus.Name = "plus"
-plus.Parent = Frame
-plus.BackgroundColor3 = Color3.fromRGB(255, 255, 182) -- パステルイエロー
-plus.BackgroundTransparency = 0.2
-plus.Position = UDim2.new(0.23, 0, 0, 0)
-plus.Size = UDim2.new(0, 45, 0, 28)
-plus.Font = Enum.Font.RobotoMono
-plus.Text = "+"
-plus.TextColor3 = Color3.fromRGB(255,255,255)
-plus.TextScaled = true
-plus.TextWrapped = true
-addUICorner(plus, 8)
-
--- speed表示
-speed.Name = "speed"
-speed.Parent = Frame
-speed.BackgroundColor3 = Color3.fromRGB(255, 255, 224) -- パステルイエロー
-speed.BackgroundTransparency = 0.2
-speed.Position = UDim2.new(0.47, 0, 0.49, 0)
-speed.Size = UDim2.new(0, 44, 0, 28)
-speed.Font = Enum.Font.RobotoMono
+local speed = Instance.new("TextLabel", Frame)
+speed.Size = UDim2.new(0,44,0,28)
+speed.Position = UDim2.new(0.47,0,0.49,0)
 speed.Text = "1"
+speed.Font = Enum.Font.RobotoMono
 speed.TextColor3 = Color3.fromRGB(255,255,255)
 speed.TextScaled = true
 speed.TextWrapped = true
+speed.BackgroundColor3 = Color3.fromRGB(20,20,20)
+speed.BackgroundTransparency = 0.1
 addUICorner(speed, 8)
 
--- - ボタン
-mine.Name = "mine"
-mine.Parent = Frame
-mine.BackgroundColor3 = Color3.fromRGB(255, 182, 193)
-mine.BackgroundTransparency = 0.2
-mine.Position = UDim2.new(0.23, 0, 0.49, 0)
-mine.Size = UDim2.new(0, 45, 0, 29)
-mine.Font = Enum.Font.RobotoMono
-mine.Text = "-"
-mine.TextColor3 = Color3.fromRGB(255,255,255)
-mine.TextScaled = true
-mine.TextWrapped = true
-addUICorner(mine, 8)
-
--- Closeボタン
-closebutton.Name = "Close"
-closebutton.Parent = Frame
-closebutton.BackgroundColor3 = Color3.fromRGB(255, 105, 180) -- 鮮やかピンク
-closebutton.BackgroundTransparency = 0.2
-closebutton.Font = Enum.Font.RobotoMono
-closebutton.Size = UDim2.new(0, 45, 0, 28)
-closebutton.Text = "X"
-closebutton.TextColor3 = Color3.fromRGB(255,255,255)
-closebutton.TextSize = 30
-closebutton.Position =  UDim2.new(0, 0, -1, 27)
-addUICorner(closebutton, 8)
-
--- Minimizeボタン
-mini.Name = "minimize"
-mini.Parent = Frame
-mini.BackgroundColor3 = Color3.fromRGB(255, 192, 203) -- 淡いピンク
-mini.BackgroundTransparency = 0.2
-mini.Font = Enum.Font.RobotoMono
-mini.Size = UDim2.new(0, 45, 0, 28)
-mini.Text = "-"
-mini.TextColor3 = Color3.fromRGB(255,255,255)
-mini.TextSize = 40
-mini.Position = UDim2.new(0, 44, -1, 27)
-addUICorner(mini, 8)
-
--- Minimize2ボタン
-mini2.Name = "minimize2"
-mini2.Parent = Frame
-mini2.BackgroundColor3 = Color3.fromRGB(173, 216, 230) -- パステル水色
-mini2.BackgroundTransparency = 0.2
-mini2.Font = Enum.Font.RobotoMono
-mini2.Size = UDim2.new(0, 45, 0, 28)
-mini2.Text = "+"
-mini2.TextColor3 = Color3.fromRGB(255,255,255)
-mini2.TextSize = 40
-mini2.Position = UDim2.new(0, 44, -1, 57)
-mini2.Visible = false
-addUICorner(mini2, 8)
-
-speeds = 1
-
-local speaker = game:GetService("Players").LocalPlayer
-
-local chr = game.Players.LocalPlayer.Character
-local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
-
-nowe = false
-
-Frame.Active = true -- main = gui
-Frame.Draggable = true
+-- 変数
+local speeds = 1
+local nowe = false
+local speaker = LocalPlayer
 
 onof.MouseButton1Down:connect(function()
 
