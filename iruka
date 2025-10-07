@@ -1338,14 +1338,17 @@ local function attackNoCoolDown()
 		local targets, mainTarget = {}, nil
 		for _, enemy in ipairs(enemiesInRange) do
 			if not enemy:GetAttribute("IsBoat") then
+				print("ASASAAAS")
 				local head = enemy:FindFirstChild("Head")
 				if head then
+					print(")))))))")
 					table.insert(targets, { enemy, head })
 					mainTarget = head
 				end
 			end
 		end
 		if mainTarget then
+			print("MAin")
 			local storage = game:GetService("ReplicatedStorage")
 			local attackEvent = storage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterAttack")
 			local hitEvent = storage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterHit")
