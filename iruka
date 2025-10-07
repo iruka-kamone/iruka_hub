@@ -1297,6 +1297,7 @@ local function GetEnemiesInRange(character, range)
 end
 
 spawn(function()
+	print("WW")
 	while fastAttack do
 		print("A")
 		local character = player.Character
