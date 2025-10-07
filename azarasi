@@ -1,10 +1,100 @@
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local player = game.Players.LocalPlayer
-local killAura = false
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
 
-local gui = Instance.new("ScreenGui")
+local killAura = false
+local currentIsland
+local anchorPart -- 移動用パート
+
+-- 🧱 Tween用の透明パート作成
+local function createAnchorPart()
+	if anchorPart and anchorPart.Parent then return anchorPart end
+	anchorPart = Instance.new("Part")
+	anchorPart.Name = "RaidAnchor"
+	anchorPart.Anchored = true
+	anchorPart.Transparency = 1
+	anchorPart.CanCollide = false
+	anchorPart.Size = Vector3.new(2, 2, 2)
+	anchorPart.Parent = workspace
+	return anchorPart
+end
+
+-- 🔍 一番大きい RaidIsland を取得
+local function getHighestRaidIsland()
+	local raidMap = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("RaidMap")
+	if not raidMap then return nil end
+
+	local highestIsland, highestNum = nil, -math.huge
+	for _, island in pairs(raidMap:GetChildren()) do
+		local num = tonumber(island.Name:match("RaidIsland(%d+)"))
+		if num and num > highestNum then
+			highestNum = num
+			highestIsland = island
+		end
+	end
+	return highestIsland
+end
+
+-- 🚀 PartをTweenしてHRPを追従
+local function moveAboveIsland(island)
+	if not island then return end
+	local base = island:FindFirstChild("Center") or island:FindFirstChildWhichIsA("BasePart")
+	if not base then return end
+
+	local part = createAnchorPart()
+	local targetPos = base.Position + Vector3.new(0, 100, 0)
+	local tween = TweenService:Create(part, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Position = targetPos})
+	tween:Play()
+	tween.Completed:Wait()
+
+	-- Tween後にHRPを即TP
+	if hrp and part then
+		hrp.CFrame = CFrame.new(part.Position)
+	end
+end
+
+-- 🔁 KillAuraループ（敵Kill）
+task.spawn(function()
+	while task.wait(0.1) do
+		if killAura then
+			pcall(function()
+				for _, v in pairs(workspace.Enemies:GetDescendants()) do
+					if v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
+						repeat
+							RunService.Heartbeat:Wait()
+							v.Humanoid.Health = 0
+							v.HumanoidRootPart.CanCollide = false
+							sethiddenproperty(player, "SimulationRadius", math.huge)
+						until not v.Parent or not workspace.Enemies:FindFirstChild(v.Name)
+					end
+				end
+			end)
+		end
+	end
+end)
+
+-- 🌴 島追従監視ループ
+task.spawn(function()
+	while task.wait(1) do
+		if killAura then
+			local newIsland = getHighestRaidIsland()
+			if newIsland and newIsland ~= currentIsland then
+				currentIsland = newIsland
+				moveAboveIsland(currentIsland)
+			end
+		end
+	end
+end)
+
+--------------------------------------------------------
+-- 🌈 GUI（デザインそのまま）
+--------------------------------------------------------
+
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "KillAllGUI"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0, 230, 0, 100)
@@ -12,21 +102,19 @@ frame.Position = UDim2.new(0.3, 0, 0.3, 0)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.Active = true
 frame.Draggable = true
-
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1, -40, 0, 30)
 title.Position = UDim2.new(0, 10, 0, 5)
 title.BackgroundTransparency = 1
 title.Text = "Raid Kill Aura"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 18
 title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.new(1,1,1)
 title.TextXAlignment = Enum.TextXAlignment.Left
 
--- 🌈 虹色アニメーション
+-- 🌈 虹色タイトル
 task.spawn(function()
 	while title do
 		for i = 0, 1, 0.01 do
@@ -64,38 +152,17 @@ switch.TextColor3 = Color3.fromRGB(255, 255, 255)
 switch.Text = "OFF"
 switch.Font = Enum.Font.GothamBold
 switch.TextSize = 18
-
-local switchCorner = Instance.new("UICorner", switch)
-switchCorner.CornerRadius = UDim.new(0, 6)
-
-spawn(function()
-	game:GetService("RunService").Heartbeat:Connect(function()
-		local RegisterAttack = game:GetService("ReplicatedStorage").Modules.Net["RE/RegisterAttack"]
-		local RegisterHit = game:GetService("ReplicatedStorage").Modules.Net["RE/RegisterHit"]
-		if killAura  then
-			pcall(function()
-				for i,v in pairs(game.Workspace.Enemies:GetDescendants()) do
-					if v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
-						if v.Name then
-							repeat game:GetService("RunService").Heartbeat:wait()
-								v.Humanoid.Health = 0
-								v.HumanoidRootPart.CanCollide = false
-								sethiddenproperty(game:GetService('Players').LocalPlayer,"SimulationRadius",math.huge)
-							until  not v.Parent or not game.Workspace.Enemies:FindFirstChild(v.Name)
-						end
-					end
-				end
-			end)
-		end	
-	end)
-end)
-
+Instance.new("UICorner", switch).CornerRadius = UDim.new(0, 6)
 
 switch.MouseButton1Click:Connect(function()
 	killAura = not killAura
 	if killAura then
 		switch.Text = "ON"
 		switch.BackgroundColor3 = Color3.fromRGB(0, 85, 255)
+		currentIsland = getHighestRaidIsland()
+		if currentIsland then
+			moveAboveIsland(currentIsland)
+		end
 	else
 		switch.Text = "OFF"
 		switch.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
@@ -104,5 +171,6 @@ end)
 
 close.MouseButton1Click:Connect(function()
 	killAura = false
+	if anchorPart then anchorPart:Destroy() end
 	gui:Destroy()
 end)
