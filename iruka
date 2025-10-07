@@ -1274,11 +1274,13 @@ local function GetEnemiesInRange(character, range)
 	local players = game:GetService("Players"):GetPlayers()
 	local targets = {}
 	local playerPos = character:GetPivot().Position
+	print("LPL")
 	for _, enemy in ipairs(enemies) do
 		local rootPart = enemy:FindFirstChild("HumanoidRootPart")
 		if rootPart and IsEntityAlive(enemy) then
 			local distance = (rootPart.Position - playerPos).Magnitude
 			if distance <= range then
+				print("PPPPP")
 				table.insert(targets, enemy)
 			end
 		end
@@ -1289,6 +1291,7 @@ local function GetEnemiesInRange(character, range)
 			if rootPart and IsEntityAlive(otherPlayer.Character) then
 				local distance = (rootPart.Position - playerPos).Magnitude
 				if distance <= range then
+					print("SSSS")
 					table.insert(targets, otherPlayer.Character)
 				end
 			end
@@ -1318,6 +1321,7 @@ local function attackNoCoolDown()
 	end
 	print(attackRange)
 	local enemiesInRange = GetEnemiesInRange(character, attackRange)
+	print("QQQQQqqqqq")
 	if equippedWeapon:FindFirstChild("LeftClickRemote") then
 		print("D")
 		local attackCount = 1  
