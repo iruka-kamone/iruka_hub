@@ -1236,7 +1236,7 @@ spawn(function()
 		end
 	end
 end)
---[[pcall(function()
+pcall(function()
 	spawn(function()
 		local gg = getrawmetatable(game)
 		local old = gg.__namecall
@@ -1261,7 +1261,7 @@ end)
 			return old(...)
 		end)
 	end)
-end)--]]
+end)
 
 local function IsEntityAlive(entity)
 	if not entity then return false end
@@ -1346,10 +1346,13 @@ local function attackNoCoolDown()
 	end
 end
 
-spawn(function()
-	while fastAttack do
-		attackNoCoolDown()
-		task.wait(0.1)
+local fastAttack = false
+
+task.spawn(function()
+	while task.wait(0.1) do
+		if fastAttack then
+			attackNoCoolDown()
+		end
 	end
 end)
 
