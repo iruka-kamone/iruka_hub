@@ -1297,8 +1297,9 @@ local function GetEnemiesInRange(character, range)
 end
 
 spawn(function()
-	print("WW")
-	while fastAttack do
+	while task.wait(0.1) do
+		print("WW")
+		if  not fastAttack then return end
 		print("A")
 		local character = player.Character
 		local hrp = character:FindFirstChild("HumanoidRootPart")
@@ -1352,7 +1353,6 @@ spawn(function()
 				end)
 			end
 		end
-	task.wait(0.1)
 	end
 end)
 
