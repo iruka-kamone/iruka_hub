@@ -1,0 +1,93 @@
+local player = game.Players.LocalPlayer
+local killAura = false
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "KillAllGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 230, 0, 100)
+frame.Position = UDim2.new(0.3, 0, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.Active = true
+frame.Draggable = true
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0, 10)
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, -40, 0, 30)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "Raid Kill Aura"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- 🌈 虹色アニメーション
+task.spawn(function()
+	while title do
+		for i = 0, 1, 0.01 do
+			title.TextColor3 = Color3.fromHSV(i, 1, 1)
+			task.wait(0.03)
+		end
+	end
+end)
+
+local close = Instance.new("TextButton", frame)
+close.Size = UDim2.new(0, 25, 0, 25)
+close.Position = UDim2.new(1, -30, 0, 5)
+close.Text = "×"
+close.TextColor3 = Color3.fromRGB(255, 100, 100)
+close.BackgroundTransparency = 1
+close.TextSize = 20
+close.Font = Enum.Font.GothamBold
+
+local switch = Instance.new("TextButton", frame)
+switch.Size = UDim2.new(0.9, 0, 0, 40)
+switch.Position = UDim2.new(0.05, 0, 0, 45)
+switch.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+switch.TextColor3 = Color3.fromRGB(255, 255, 255)
+switch.Text = "OFF"
+switch.Font = Enum.Font.GothamBold
+switch.TextSize = 18
+
+local switchCorner = Instance.new("UICorner", switch)
+switchCorner.CornerRadius = UDim.new(0, 6)
+
+spawn(function()
+	while task.wait(0.1) do
+		if killAura then
+			pcall(function()
+				for i, v in pairs(game.Workspace.Enemies:GetDescendants()) do
+					if v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
+						repeat
+							game:GetService("RunService").Heartbeat:Wait()
+							v.Humanoid.Health = 0
+							v.HumanoidRootPart.CanCollide = false
+							sethiddenproperty(game:GetService("Players").LocalPlayer, "SimulationRadius", math.huge)
+						until not v.Parent or not game.Workspace.Enemies:FindFirstChild(v.Name)
+					end
+				end
+			end)
+		end
+	end
+end)
+
+switch.MouseButton1Click:Connect(function()
+	killAura = not killAura
+	if killAura then
+		switch.Text = "ON"
+		switch.BackgroundColor3 = Color3.fromRGB(0, 85, 255)
+	else
+		switch.Text = "OFF"
+		switch.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+	end
+end)
+
+close.MouseButton1Click:Connect(function()
+	killAura = false
+	gui:Destroy()
+end)
