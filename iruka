@@ -1352,7 +1352,7 @@ local fastAttackSwitch =createSwitch(bloxfruitsRightScroll,"Fast Attack", false,
 	fastAttack = state
 end)
 
-local superRange = createSwitch(bloxfruitsRightScroll, "Super Range(Buddha Only)", false, function(state)
+local superRangeSwitch = createSwitch(bloxfruitsRightScroll, "Super Range(Buddha Only)", false, function(state)
 	superRange = state
 end)
 
