@@ -1404,9 +1404,14 @@ fightingShopButton.MouseButton1Click:Connect(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/iruka-kamone/iruka_hub/refs/heads/main/sirokuma"))()
 end)
 
+local killAuraButton =createButton(bloxfruitsLeftScroll,"Raid Kill Aura Gui")
+killAuraButton.MouseButton1Click:Connect(function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/iruka-kamone/iruka_hub/refs/heads/main/azarasi"))()
+end)
+
 if not bloxFruitsMode then
 
-	local bloxfruitsGui ={takeShip,removeLavaSwitch,tpSwitch,aimbotSwitch,fightingShopButton}
+	local bloxfruitsGui ={takeShip,removeLavaSwitch,tpSwitch,aimbotSwitch,fightingShopButton,killAuraButton,setHitboxSwitch,hitboxVisibleSwitch,fastAttackSwitch,superRangeSwitch}
 
 	for i,switch in ipairs(bloxfruitsGui) do
 		if switch:FindFirstChild("SwitchBase") then
