@@ -47,7 +47,7 @@ local function createFollowPlatform(position)
 	followPlatform.Size = Vector3.new(4, 1, 4)
 	followPlatform.Anchored = true
 	followPlatform.CanCollide = false
-	followPlatform.Transparency = 0
+	followPlatform.Transparency = 1
 	followPlatform.Position = position
 	followPlatform.Parent = workspace
 end
@@ -1274,13 +1274,11 @@ local function GetEnemiesInRange(character, range)
 	local players = game:GetService("Players"):GetPlayers()
 	local targets = {}
 	local playerPos = character:GetPivot().Position
-	print("LPL")
 	for _, enemy in ipairs(enemies) do
 		local rootPart = enemy:FindFirstChild("HumanoidRootPart")
 		if rootPart and IsEntityAlive(enemy) then
 			local distance = (rootPart.Position - playerPos).Magnitude
 			if distance <= range then
-				print("PPPPP")
 				table.insert(targets, enemy)
 			end
 		end
@@ -1291,7 +1289,6 @@ local function GetEnemiesInRange(character, range)
 			if rootPart and IsEntityAlive(otherPlayer.Character) then
 				local distance = (rootPart.Position - playerPos).Magnitude
 				if distance <= range then
-					print("SSSS")
 					table.insert(targets, otherPlayer.Character)
 				end
 			end
@@ -1301,11 +1298,9 @@ local function GetEnemiesInRange(character, range)
 end
 
 local function attackNoCoolDown()
-	print("Ww")
 	local character = player.Character
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
-	print("B")
 	local equippedWeapon
 	for _, item in ipairs(character:GetChildren()) do
 		if item:IsA("Tool") then
@@ -1314,16 +1309,11 @@ local function attackNoCoolDown()
 		end
 	end
 	if not equippedWeapon then return end
-	print("C")
 	if hrp:FindFirstChild("Buddha") and superRange then
 		attackRange =1000
-		print("Buddha")
 	end
-	print(attackRange)
 	local enemiesInRange = GetEnemiesInRange(character, attackRange)
-	print("QQQQQqqqqq")
 	if equippedWeapon:FindFirstChild("LeftClickRemote") then
-		print("D")
 		local attackCount = 1  
 		for _, enemy in ipairs(enemiesInRange) do
 			local rootPart = enemy:FindFirstChild("HumanoidRootPart")
@@ -1334,21 +1324,17 @@ local function attackNoCoolDown()
 			end
 		end
 	else
-		print("E")
 		local targets, mainTarget = {}, nil
 		for _, enemy in ipairs(enemiesInRange) do
 			if not enemy:GetAttribute("IsBoat") then
-				print("ASASAAAS")
 				local head = enemy:FindFirstChild("Head")
 				if head then
-					print(")))))))")
 					table.insert(targets, { enemy, head })
 					mainTarget = head
 				end
 			end
 		end
 		if mainTarget then
-			print("MAin")
 			local storage = game:GetService("ReplicatedStorage")
 			local attackEvent = storage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterAttack")
 			local hitEvent = storage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterHit")
@@ -1380,23 +1366,21 @@ end)
 
 local statsSwitch = createSwitch(otherRightScroll, "Stats Gui", false, function(state)
 	statsGui.Enabled = state
+	RunService.Heartbeat:Connect(function()
+		frameCount += 1
+		local now = tick()
+		if now - lastTime >= 1 then
+			fps = frameCount / (now - lastTime)
+			frameCount = 0
+			lastTime = now
+		end
 
-	frameCount += 1
-	local now = tick()
-	if now - lastTime >= 1 then
-		fps = frameCount / (now - lastTime)
-		frameCount = 0
-		lastTime = now
-	end
+		local pos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position or Vector3.new(0,0,0)
 
-	-- 座標
-	local pos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position or Vector3.new(0,0,0)
+		local ping = math.floor(player:GetNetworkPing() * 1000) 
 
-	-- Ping
-	local ping = math.floor(player:GetNetworkPing() * 1000) -- 秒 → ms
-
-	-- 表示更新
-	statsLabel.Text = string.format("FPS: %d | Ping: %dms | POS: (%.1f, %.1f, %.1f)", fps, ping, pos.X, pos.Y, pos.Z)
+		statsLabel.Text = string.format("FPS: %d | Ping: %dms | POS: (%.1f, %.1f, %.1f)", fps, ping, pos.X, pos.Y, pos.Z)
+	end)
 end)
 
 local fightingShopButton = createButton(bloxfruitsLeftScroll, "Fightings Shop Gui")
