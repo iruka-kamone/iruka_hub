@@ -28,6 +28,9 @@ local nearestEnemyPos = nil
 local aimbotSkill =false
 local hitboxSize =Vector3.new(2,2,1)
 local hitboxVisible = false
+local fastAttack = false
+local attackRange = 60
+local superRange = false
 
 local lastTime = tick()
 local frameCount = 0
@@ -919,7 +922,7 @@ end
 
 local setHitboxSwitch = createSwitch(otherRightScroll,"Hitbox Enabled",false,function(state)
 	if state then
-		hitboxSize =Vector3.new(62,62,62)
+		hitboxSize =Vector3.new(60,60,60)
 		setHitbox()
 	else
 		hitboxSize =Vector3.new(2,2,1)
@@ -1257,6 +1260,100 @@ spawn(function()
 		end
 		return old(...)
 	end)
+end)
+
+local function IsEntityAlive(entity)
+	if not entity then return false end
+	local humanoid = entity:FindFirstChild("Humanoid")
+	return humanoid and humanoid.Health > 0
+end
+
+local function GetEnemiesInRange(character, range)
+	local enemies = game:GetService("Workspace").Enemies:GetChildren()
+	local players = game:GetService("Players"):GetPlayers()
+	local targets = {}
+	local playerPos = character:GetPivot().Position
+	for _, enemy in ipairs(enemies) do
+		local rootPart = enemy:FindFirstChild("HumanoidRootPart")
+		if rootPart and IsEntityAlive(enemy) then
+			local distance = (rootPart.Position - playerPos).Magnitude
+			if distance <= range then
+				table.insert(targets, enemy)
+			end
+		end
+	end
+	for _, otherPlayer in ipairs(players) do
+		if otherPlayer ~= player and otherPlayer.Character then
+			local rootPart = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
+			if rootPart and IsEntityAlive(otherPlayer.Character) then
+				local distance = (rootPart.Position - playerPos).Magnitude
+				if distance <= range then
+					table.insert(targets, otherPlayer.Character)
+				end
+			end
+		end
+	end
+	return targets
+end
+
+spawn(function()
+	while fastAttack do
+		local character = player.Character
+		local hrp = character:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+		local equippedWeapon
+		for _, item in ipairs(character:GetChildren()) do
+			if item:IsA("Tool") then
+				equippedWeapon = item
+				break
+			end
+		end
+		if not equippedWeapon then return end
+		if hrp:FindFirstChild("Buddha") and superRange then
+			attackRange =1000
+		end
+		local enemiesInRange = GetEnemiesInRange(character, attackRange)
+		if equippedWeapon:FindFirstChild("LeftClickRemote") then
+			local attackCount = 1  
+			for _, enemy in ipairs(enemiesInRange) do
+				local rootPart = enemy:FindFirstChild("HumanoidRootPart")
+				if rootPart then
+					local direction = (rootPart.Position - character:GetPivot().Position).Unit
+					equippedWeapon.LeftClickRemote:FireServer(direction, attackCount)
+					attackCount = attackCount + 1
+				end
+			end
+		else
+			local targets, mainTarget = {}, nil
+			for _, enemy in ipairs(enemiesInRange) do
+				if not enemy:GetAttribute("IsBoat") then
+					local head = enemy:FindFirstChild("Head")
+					if head then
+						table.insert(targets, { enemy, head })
+						mainTarget = head
+					end
+				end
+			end
+			if mainTarget then
+				local storage = game:GetService("ReplicatedStorage")
+				local attackEvent = storage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterAttack")
+				local hitEvent = storage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterHit")
+				pcall(function()
+					attackEvent:FireServer(0.1)
+					hitEvent:FireServer(mainTarget, targets)
+				end)
+			end
+		end
+	task.wait(0.1)
+	end
+end)
+
+local fastAttackSwitch =createSwitch(bloxfruitsRightScroll,"Fast Attack", false,function(state)
+	fastAttack = state
+end)
+
+local superRange = createSwitch(bloxfruitsRightScroll, "Super Range(Buddha Only)", false, function(state)
+	superRange = state
 end)
 
 local statsSwitch = createSwitch(otherRightScroll, "Stats Gui", false, function(state)
