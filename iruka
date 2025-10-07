@@ -1298,9 +1298,11 @@ local function GetEnemiesInRange(character, range)
 end
 
 local function attackNoCoolDown()
+	print("Ww")
 	local character = player.Character
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
+	print("B")
 	local equippedWeapon
 	for _, item in ipairs(character:GetChildren()) do
 		if item:IsA("Tool") then
@@ -1309,11 +1311,15 @@ local function attackNoCoolDown()
 		end
 	end
 	if not equippedWeapon then return end
+	print("C")
 	if hrp:FindFirstChild("Buddha") and superRange then
 		attackRange =1000
+		print("Buddha")
 	end
+	print(attackRange)
 	local enemiesInRange = GetEnemiesInRange(character, attackRange)
 	if equippedWeapon:FindFirstChild("LeftClickRemote") then
+		print("D")
 		local attackCount = 1  
 		for _, enemy in ipairs(enemiesInRange) do
 			local rootPart = enemy:FindFirstChild("HumanoidRootPart")
@@ -1324,6 +1330,7 @@ local function attackNoCoolDown()
 			end
 		end
 	else
+		print("E")
 		local targets, mainTarget = {}, nil
 		for _, enemy in ipairs(enemiesInRange) do
 			if not enemy:GetAttribute("IsBoat") then
