@@ -937,7 +937,7 @@ local hitboxVisibleSwitch = createSwitch(otherRightScroll,"Hitbox Visible",false
 	setHitbox()
 end)
 
-local noClipSwitch =createSwitch(bloxfruitsRightScroll,"NoClip",false,function(state)
+local noClipSwitch =createSwitch(otherRightScroll,"NoClip",false,function(state)
 	if	noClipConnection then noClipConnection:Disconnect() end
 	if state then
 		noClipConnection = RunService.Stepped:Connect(function()
