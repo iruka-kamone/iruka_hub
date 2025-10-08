@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local MOVE_SPEED = 300
@@ -31,6 +32,7 @@ local hitboxVisible = false
 local fastAttack = false
 local attackRange = 60
 local superRange = false
+local noClipConnection =nil
 
 local lastTime = tick()
 local frameCount = 0
@@ -935,6 +937,21 @@ local hitboxVisibleSwitch = createSwitch(otherRightScroll,"Hitbox Visible",false
 	setHitbox()
 end)
 
+local noClipSwitch =createSwitch(otherRightScroll,"NoClip",false,function(state)
+	if	noClipConnection then noClipConnection:Disconnect() end
+	if state then
+		noClipConnection = RunService.Stepped:Connect(function()
+			for _, p in ipairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+				if p:IsA("BasePart") then p.CanCollide = false end
+			end
+		end)
+	else
+		for _, p in ipairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+			if p:IsA("BasePart") then p.CanCollide = true end
+		end
+	end
+end)
+
 local removeLavaSwitch = createSwitch(bloxfruitsRightScroll, "Remove Lava", false, function(state)
 	if state then
 		local targets = {"CircleIsland", "GhostShipInterior"}
@@ -1335,9 +1352,8 @@ local function attackNoCoolDown()
 			end
 		end
 		if mainTarget then
-			local storage = game:GetService("ReplicatedStorage")
-			local attackEvent = storage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterAttack")
-			local hitEvent = storage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterHit")
+			local attackEvent = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterAttack")
+			local hitEvent = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Net"):WaitForChild("RE/RegisterHit")
 			pcall(function()
 				attackEvent:FireServer(0.1)
 				hitEvent:FireServer(mainTarget, targets)
@@ -1393,9 +1409,21 @@ killAuraButton.MouseButton1Click:Connect(function()
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/iruka-kamone/iruka_hub/refs/heads/main/azarasi"))()
 end)
 
+local fixCameraShakeButton =createButton(bloxfruitsLeftScroll,"Fix CameraShake")
+fixCameraShakeButton.MouseButton1Click:Connect(function()
+	local Util = ReplicatedStorage:WaitForChild("Util", 5)
+	if Util then
+		local CameraShaker = Util:FindFirstChild("CameraShaker")
+		if CameraShaker then
+			require(CameraShaker):Stop()
+		end
+	end
+end)
+
 if not bloxFruitsMode then
 
-	local bloxfruitsGui ={takeShip,removeLavaSwitch,tpSwitch,aimbotSwitch,fightingShopButton,killAuraButton,setHitboxSwitch,hitboxVisibleSwitch,fastAttackSwitch,superRangeSwitch}
+	local bloxfruitsGui ={takeShip,removeLavaSwitch,tpSwitch,aimbotSwitch,fightingShopButton,killAuraButton,setHitboxSwitch,
+		hitboxVisibleSwitch,fastAttackSwitch,superRangeSwitch,fixCameraShakeButton}
 
 	for i,switch in ipairs(bloxfruitsGui) do
 		if switch:FindFirstChild("SwitchBase") then
