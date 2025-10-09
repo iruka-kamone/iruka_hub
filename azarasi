@@ -22,28 +22,8 @@ local function createAnchorPart()
 	return anchorPart
 end
 
-local function getHighestRaidIsland()
-	local raidMap = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("RaidMap")
-	if not raidMap then return nil end
-
-	local highestIsland, highestNum = nil, -math.huge
-	for _, island in pairs(raidMap:GetChildren()) do
-		local num = tonumber(island.Name:match("RaidIsland(%d+)"))
-		if num and num > highestNum then
-			highestNum = num
-			highestIsland = island
-		end
-	end
-	return highestIsland
-end
-
-local function moveAboveIsland(island)
-	if not island then return end
-	local base = island:FindFirstChild("Center") or island:FindFirstChildWhichIsA("BasePart")
-	if not base then return end
-
+local function moveAboveIsland(targetPos)
 	local part = createAnchorPart()
-	local targetPos = base.Position + Vector3.new(0, 100, 100)
 
 	if followConnection then followConnection:Disconnect() end
 
@@ -84,10 +64,13 @@ end)
 task.spawn(function()
 	while task.wait(1) do
 		if killAura then
-			local newIsland = getHighestRaidIsland()
-			if newIsland and newIsland ~= currentIsland then
-				currentIsland = newIsland
-				moveAboveIsland(currentIsland)
+			local islands = {"Island 5", "Island 4", "Island 3", "Island 2", "Island 1"}
+			for _, island in ipairs(islands) do
+				local location = game:GetService("Workspace")["_WorldOrigin"].Locations:FindFirstChild(island)
+				if location then
+					moveAboveIsland(location.CFrame * CFrame.new(0, 70, 100))
+					break
+				end
 			end
 		end
 	end
@@ -159,10 +142,6 @@ switch.MouseButton1Click:Connect(function()
 	if killAura then
 		switch.Text = "ON"
 		switch.BackgroundColor3 = Color3.fromRGB(0, 85, 255)
-		currentIsland = getHighestRaidIsland()
-		if currentIsland then
-			moveAboveIsland(currentIsland)
-		end
 	else
 		switch.Text = "OFF"
 		switch.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
