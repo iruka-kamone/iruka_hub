@@ -57,7 +57,7 @@ local function moveAboveIsland(island)
 	local speed = 350
 	local tweenTime = distance / speed
 
-	local tween = TweenService:Create(part, TweenInfo.new(tweenTime, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Position = targetPos})
+	local tween = TweenService:Create(part, TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Position = targetPos})
 	tween:Play()
 end
 
