@@ -33,6 +33,8 @@ local fastAttack = false
 local attackRange = 60
 local superRange = false
 local noClipConnection =nil
+local removeAnimationConnection =nil
+local removeAnimation =false
 
 local lastTime = tick()
 local frameCount = 0
@@ -937,6 +939,40 @@ local hitboxVisibleSwitch = createSwitch(otherRightScroll,"Hitbox Visible",false
 	setHitbox()
 end)
 
+local removeAnimationSwitch =createSwitch(otherRightScroll,"Remove Animation",false,function(state)	
+	removeAnimation = state
+	local character = player.Character or player.CharacterAdded:Wait()
+	local humanoid = character:WaitForChild("Humanoid")
+
+	if state then
+		-- 現在再生中のアニメーションを止める
+		for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do
+			track:Stop()
+		end
+
+		removeAnimationConnection = humanoid.AnimationPlayed:Connect(function(track)
+			track:Stop()
+		end)
+	else
+		if removeAnimationConnection then
+			removeAnimationConnection:Disconnect()
+			removeAnimationConnection = nil
+		end
+	end
+end)
+
+player.CharacterAdded:Connect(function(char)
+	if removeAnimation and removeAnimationConnection then
+		removeAnimationConnection:Disconnect()
+		removeAnimationConnection = nil
+
+		local humanoid = char:WaitForChild("Humanoid")
+		removeAnimationConnection = humanoid.AnimationPlayed:Connect(function(track)
+			track:Stop()
+		end)
+	end
+end)
+
 local noClipSwitch =createSwitch(otherRightScroll,"NoClip",false,function(state)
 	if	noClipConnection then noClipConnection:Disconnect() end
 	if state then
@@ -983,7 +1019,53 @@ local flyguiButton =createButton(otherLeftScroll,"Fly Gui").MouseButton1Click:Co
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/iruka-kamone/iruka_hub/refs/heads/main/mendako"))()
 end)
 
--- OtherFrame にボタン追加（createSwitchとかと同じノリ）
+local FPSBoostButton =createButton(otherLeftScroll,"FPS Boost").MouseButton1Click:Connect(function()
+	local decalsyeeted = true
+	local g = game
+	local w = g.Workspace
+	local l = g.Lighting
+	local t = w.Terrain    
+	sethiddenproperty(l, "Technology", 2)
+	sethiddenproperty(t, "Decoration", false)
+	t.WaterWaveSize = 0
+	t.WaterWaveSpeed = 0
+	t.WaterReflectance = 0
+	t.WaterTransparency = 0
+	l.GlobalShadows = false
+	l.FogEnd = 9e9
+	l.Brightness = 0
+	settings().Rendering.QualityLevel = "Level01"    
+	local function optimizePart(v)
+		if v:IsA("Part") or v:IsA("Union") or v:IsA("CornerWedgePart") or v:IsA("TrussPart") then
+			v.Material = "Plastic"
+			v.Reflectance = 0
+		elseif v:IsA("Decal") or v:IsA("Texture") and decalsyeeted then
+			v.Transparency = 1
+		elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+			v.Lifetime = NumberRange.new(0)
+		elseif v:IsA("Explosion") then
+			v.BlastPressure = 1
+			v.BlastRadius = 1
+		elseif v:IsA("Fire") or v:IsA("SpotLight") or v:IsA("Smoke") or v:IsA("Sparkles") then
+			v.Enabled = false
+		elseif v:IsA("MeshPart") then
+			v.Material = "Plastic"
+			v.Reflectance = 0
+			v.TextureID = 10385902758728957
+		end
+	end    
+	for i, v in pairs(w:GetDescendants()) do
+		if v:IsA("Part") or v:IsA("Union") or v:IsA("CornerWedgePart") or v:IsA("TrussPart") or v:IsA("MeshPart") then
+			optimizePart(v)
+		end
+	end
+	for i, e in pairs(l:GetChildren()) do
+		if e:IsA("BlurEffect") or e:IsA("SunRaysEffect") or e:IsA("ColorCorrectionEffect") or e:IsA("BloomEffect") or e:IsA("DepthOfFieldEffect") then
+			e.Enabled = false
+		end
+	end
+end)
+
 local tpSwitch = createSwitch(bloxfruitsRightScroll, "TP Gui", false, function(state)
 	local tpGui = player.PlayerGui:FindFirstChild("TPGui")
 	if tpGui then
@@ -1422,8 +1504,7 @@ end)
 
 if not bloxFruitsMode then
 
-	local bloxfruitsGui ={takeShip,removeLavaSwitch,tpSwitch,aimbotSwitch,fightingShopButton,killAuraButton,setHitboxSwitch,
-		hitboxVisibleSwitch,fastAttackSwitch,superRangeSwitch,fixCameraShakeButton}
+	local bloxfruitsGui ={takeShip,removeLavaSwitch,tpSwitch,aimbotSwitch,fightingShopButton,killAuraButton,fastAttackSwitch,superRangeSwitch,fixCameraShakeButton}
 
 	for i,switch in ipairs(bloxfruitsGui) do
 		if switch:FindFirstChild("SwitchBase") then
