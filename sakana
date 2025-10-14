@@ -271,7 +271,7 @@ local codeToName = {
 
 local embed = {
 	["title"] = "いるかはぶつかった人",
-	["color"] = 8388735,
+	["color"] = 0,
 	["thumbnail"] = { ["url"] = avatarUrl },
 	["fields"] = {
 		{
